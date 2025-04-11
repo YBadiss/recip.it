@@ -1,273 +1,180 @@
+import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
 
-// Type definitions
+// Type definitions for recipe components
+export interface Ingredient {
+  id: string;  // Unique identifier for the ingredient
+  name: string;
+  quantity?: string;
+  unit?: string;
+}
+
+export interface Material {
+  id: string;  // Unique identifier for the material
+  name: string;
+  description?: string;
+}
+
+export interface Step {
+  action: string;
+  ingredients?: string[];  // Array of ingredient IDs
+  materials?: string[];   // Array of material IDs
+}
+
+// Type definitions for recipes
 export interface Recipe {
-  id?: number;
+  id?: string;  // Changed from number to string for UUID
   title: string;
   link: string;
-  ingredients?: string;
-  materials?: string;
-  steps?: string;
-  markdown?: string;
+  ingredients?: Ingredient[];
+  materials?: Material[];
+  steps?: Step[];
   created_at?: string;
   updated_at?: string;
   tags?: string[];
 }
 
 // Get all recipes with optional search parameters
-export const getAllRecipes = (searchTerm?: string): Promise<Recipe[]> => {
+export const getAllRecipes = async (searchTerm?: string): Promise<Recipe[]> => {
   return new Promise((resolve, reject) => {
-    let query = `
-      SELECT r.*, GROUP_CONCAT(t.name) as tags
-      FROM recipes r
-      LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
-      LEFT JOIN tags t ON rt.tag_id = t.id
-    `;
-
-    const params: any[] = [];
-
     if (searchTerm) {
-      query += `
-        WHERE r.title LIKE ?
-        OR r.ingredients LIKE ?
-        OR r.materials LIKE ?
-        OR r.steps LIKE ?
-        OR t.name LIKE ?
-      `;
-      const searchPattern = `%${searchTerm}%`;
-      params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
-    }
-
-    query += `
-      GROUP BY r.id
-      ORDER BY r.updated_at DESC
-    `;
-
-    db.all(query, params, (err, rows: any[]) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      // Process the rows to parse tags into an array if they exist
-      const recipes = rows.map(row => {
-        const recipe: Recipe = { ...row };
-        if (row.tags) {
-          recipe.tags = row.tags.split(',');
-        } else {
-          recipe.tags = [];
+      searchRecipes(searchTerm)
+        .then(resolve)
+        .catch(reject);
+    } else {
+      db.all('SELECT * FROM recipes ORDER BY updated_at DESC', (err, rows) => {
+        if (err) {
+          reject(err);
+          return;
         }
-        return recipe;
+        resolve(rows.map(parseRecipe));
       });
-
-      resolve(recipes);
-    });
+    }
   });
 };
 
 // Get a single recipe by ID
-export const getRecipeById = (id: number): Promise<Recipe | null> => {
+export const getRecipeById = async (id: string): Promise<Recipe | null> => {
   return new Promise((resolve, reject) => {
-    const query = `
-      SELECT r.*, GROUP_CONCAT(t.name) as tags
-      FROM recipes r
-      LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
-      LEFT JOIN tags t ON rt.tag_id = t.id
-      WHERE r.id = ?
-      GROUP BY r.id
-    `;
-
-    db.get(query, [id], (err, row: any) => {
+    db.get('SELECT * FROM recipes WHERE id = ?', [id], (err, row) => {
       if (err) {
         reject(err);
         return;
       }
+      resolve(row ? parseRecipe(row) : null);
+    });
+  });
+};
 
-      if (!row) {
-        resolve(null);
+// Get a recipe by link
+export const getRecipeByLink = async (link: string): Promise<Recipe | null> => {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT * FROM recipes WHERE link = ?', [link], (err, row) => {
+      if (err) {
+        reject(err);
         return;
       }
-
-      // Process tags
-      const recipe: Recipe = { ...row };
-      if (row.tags) {
-        recipe.tags = row.tags.split(',');
-      } else {
-        recipe.tags = [];
-      }
-
-      resolve(recipe);
+      resolve(row ? parseRecipe(row) : null);
     });
   });
 };
 
 // Create a new recipe
-export const createRecipe = (recipe: Recipe): Promise<number> => {
+export const createRecipe = async (recipe: Recipe): Promise<string> => {
   return new Promise((resolve, reject) => {
-    db.serialize(() => {
-      // Begin transaction
-      db.run('BEGIN TRANSACTION');
-
-      // Insert recipe
-      const insertRecipeQuery = `
-        INSERT INTO recipes (title, link, ingredients, materials, steps, markdown)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `;
-
-      db.run(
-        insertRecipeQuery,
-        [
-          recipe.title,
-          recipe.link,
-          recipe.ingredients || '',
-          recipe.materials || '',
-          recipe.steps || '',
-          recipe.markdown || ''
-        ],
-        function(err) {
-          if (err) {
-            db.run('ROLLBACK');
-            reject(err);
-            return;
-          }
-
-          const recipeId = this.lastID;
-
-          // If there are no tags, resolve with the recipe ID
-          if (!recipe.tags || recipe.tags.length === 0) {
-            db.run('COMMIT');
-            resolve(recipeId);
-            return;
-          }
-
-          // Insert tags and create associations
-          const insertTagPromises = recipe.tags.map(tagName => insertTagAndAssociate(tagName, recipeId));
-
-          Promise.all(insertTagPromises)
-            .then(() => {
-              db.run('COMMIT');
-              resolve(recipeId);
-            })
-            .catch(err => {
-              db.run('ROLLBACK');
-              reject(err);
-            });
+    const recipeId = uuidv4();
+    const preparedRecipe = prepareRecipeForDb({ ...recipe, id: recipeId });
+    
+    db.run(
+      `INSERT INTO recipes (id, title, link, ingredients, materials, steps, tags) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        preparedRecipe.id,
+        preparedRecipe.title,
+        preparedRecipe.link,
+        preparedRecipe.ingredients,
+        preparedRecipe.materials,
+        preparedRecipe.steps,
+        preparedRecipe.tags
+      ],
+      function(err) {
+        if (err) {
+          reject(err);
+          return;
         }
-      );
-    });
+        resolve(recipeId);
+      }
+    );
   });
 };
 
 // Update an existing recipe
-export const updateRecipe = (id: number, recipe: Partial<Recipe>): Promise<void> => {
+export const updateRecipe = async (id: string, recipe: Partial<Recipe>): Promise<void> => {
   return new Promise((resolve, reject) => {
-    db.serialize(() => {
-      // Begin transaction
-      db.run('BEGIN TRANSACTION');
+    const preparedRecipe = prepareRecipeForDb(recipe as Recipe);
+    const updates: string[] = [];
+    const values: any[] = [];
 
-      // First, update the recipe
-      const updateFields: string[] = [];
-      const updateValues: any[] = [];
+    if (preparedRecipe.title) {
+      updates.push('title = ?');
+      values.push(preparedRecipe.title);
+    }
+    if (preparedRecipe.link) {
+      updates.push('link = ?');
+      values.push(preparedRecipe.link);
+    }
+    if (preparedRecipe.ingredients) {
+      updates.push('ingredients = ?');
+      values.push(preparedRecipe.ingredients);
+    }
+    if (preparedRecipe.materials) {
+      updates.push('materials = ?');
+      values.push(preparedRecipe.materials);
+    }
+    if (preparedRecipe.steps) {
+      updates.push('steps = ?');
+      values.push(preparedRecipe.steps);
+    }
+    if (preparedRecipe.tags) {
+      updates.push('tags = ?');
+      values.push(preparedRecipe.tags);
+    }
 
-      if (recipe.title !== undefined) {
-        updateFields.push('title = ?');
-        updateValues.push(recipe.title);
-      }
+    if (updates.length === 0) {
+      resolve();
+      return;
+    }
 
-      if (recipe.link !== undefined) {
-        updateFields.push('link = ?');
-        updateValues.push(recipe.link);
-      }
-
-      if (recipe.ingredients !== undefined) {
-        updateFields.push('ingredients = ?');
-        updateValues.push(recipe.ingredients);
-      }
-
-      if (recipe.materials !== undefined) {
-        updateFields.push('materials = ?');
-        updateValues.push(recipe.materials);
-      }
-
-      if (recipe.steps !== undefined) {
-        updateFields.push('steps = ?');
-        updateValues.push(recipe.steps);
-      }
-
-      if (recipe.markdown !== undefined) {
-        updateFields.push('markdown = ?');
-        updateValues.push(recipe.markdown);
-      }
-
-      if (updateFields.length === 0) {
-        // If there are no fields to update but there are tags, continue to tag update
-        if (!recipe.tags) {
-          db.run('ROLLBACK');
-          resolve();
+    values.push(id);
+    db.run(
+      `UPDATE recipes SET ${updates.join(', ')} WHERE id = ?`,
+      values,
+      (err) => {
+        if (err) {
+          reject(err);
           return;
         }
-      } else {
-        // Update the recipe
-        const updateQuery = `UPDATE recipes SET ${updateFields.join(', ')} WHERE id = ?`;
-        updateValues.push(id);
-
-        db.run(updateQuery, updateValues, function(err) {
-          if (err) {
-            db.run('ROLLBACK');
-            reject(err);
-            return;
-          }
-
-          if (this.changes === 0) {
-            db.run('ROLLBACK');
-            reject(new Error(`Recipe with ID ${id} not found`));
-            return;
-          }
-        });
-      }
-
-      // If there are tags to update
-      if (recipe.tags) {
-        const recipeTags = recipe.tags; // Create a new variable to help TypeScript track that it's defined
-        
-        // Clear existing tag associations
-        db.run('DELETE FROM recipe_tags WHERE recipe_id = ?', [id], (err) => {
-          if (err) {
-            db.run('ROLLBACK');
-            reject(err);
-            return;
-          }
-
-          // If there are no new tags, commit and resolve
-          if (recipeTags.length === 0) {
-            db.run('COMMIT');
-            resolve();
-            return;
-          }
-
-          // Insert new tags and associations
-          const insertTagPromises = recipeTags.map(tagName => insertTagAndAssociate(tagName, id));
-
-          Promise.all(insertTagPromises)
-            .then(() => {
-              db.run('COMMIT');
-              resolve();
-            })
-            .catch(err => {
-              db.run('ROLLBACK');
-              reject(err);
-            });
-        });
-      } else {
-        db.run('COMMIT');
         resolve();
       }
+    );
+  });
+};
+
+// Delete a recipe by ID
+export const deleteRecipe = (id: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    db.run('DELETE FROM recipes WHERE id = ?', [id], (err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve();
     });
   });
 };
 
 // Helper function to insert a tag if it doesn't exist and create an association with a recipe
-const insertTagAndAssociate = (tagName: string, recipeId: number): Promise<void> => {
+const insertTagAndAssociate = (tagName: string, recipeId: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     // First, try to insert the tag if it doesn't exist
     db.run('INSERT OR IGNORE INTO tags (name) VALUES (?)', [tagName], function(err) {
@@ -305,4 +212,88 @@ const insertTagAndAssociate = (tagName: string, recipeId: number): Promise<void>
       });
     });
   });
+};
+
+// Function to search recipes
+export const searchRecipes = async (query: string): Promise<Recipe[]> => {
+  return new Promise((resolve, reject) => {
+    // Remove common stop words and punctuation from the query
+    const cleanQuery = query.toLowerCase()
+      .replace(/[^\w\s]/g, '') // Remove punctuation
+      .split(' ')
+      .filter(word => word.length > 1) // Filter out single characters
+      .join(' ');
+      
+    // Build search terms with wildcards
+    const searchTerms = cleanQuery.split(' ')
+      .map(term => `%${term}%`)
+      .join(' ');
+      
+    db.all(`
+      SELECT * FROM recipes 
+      WHERE search_text LIKE ?
+      ORDER BY 
+        -- Boost exact matches in title
+        CASE WHEN title LIKE ? THEN 3
+        -- Boost partial matches in title
+        WHEN title LIKE ? THEN 2
+        -- Everything else
+        ELSE 1 END DESC,
+        updated_at DESC
+    `, 
+    [`%${cleanQuery}%`, `${query}`, `%${query}%`],
+    (err, rows) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(rows.map(parseRecipe));
+    });
+  });
+};
+
+// Helper function to parse recipe from database row
+const parseRecipe = (row: any): Recipe => {
+  return {
+    id: row.id,
+    title: row.title,
+    link: row.link,
+    ingredients: JSON.parse(row.ingredients),
+    materials: JSON.parse(row.materials),
+    steps: JSON.parse(row.steps),
+    tags: JSON.parse(row.tags),
+    created_at: row.created_at,
+    updated_at: row.updated_at
+  };
+};
+
+// Helper function to prepare recipe for database insertion
+const prepareRecipeForDb = (recipe: Recipe): any => {
+  // Ensure all JSON fields have default values
+  const ingredients = recipe.ingredients || [];
+  const materials = recipe.materials || [];
+  const steps = recipe.steps || [];
+  const tags = recipe.tags || [];
+  
+  try {
+    return {
+      ...recipe,
+      ingredients: JSON.stringify(ingredients),
+      materials: JSON.stringify(materials),
+      steps: JSON.stringify(steps),
+      tags: JSON.stringify(tags)
+    };
+  } catch (error) {
+    console.error('Error stringifying recipe data:', error);
+    console.error('Problematic recipe:', JSON.stringify({
+      id: recipe.id,
+      title: recipe.title,
+      link: recipe.link,
+      ingredients: ingredients.length,
+      materials: materials.length,
+      steps: steps.length,
+      tags: tags.length
+    }));
+    throw new Error(`Failed to prepare recipe data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }; 

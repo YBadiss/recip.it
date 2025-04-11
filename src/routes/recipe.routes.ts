@@ -9,6 +9,9 @@ router.get('/', recipeController.getAllRecipes);
 // GET /recipes/:id - Get a specific recipe by ID
 router.get('/:id', recipeController.getRecipeById);
 
+// DELETE /recipes/:id - Get a specific recipe by ID
+router.delete('/:id', recipeController.deleteRecipe);
+
 // POST /recipes - Create a new recipe from a URL
 router.post('/', recipeController.createRecipe);
 

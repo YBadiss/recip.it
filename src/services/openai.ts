@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { Ingredient, Material, Step } from '../models/recipe';
 
 dotenv.config();
 
@@ -33,10 +34,9 @@ export const fetchRecipeContent = async (url: string): Promise<string> => {
 // Interface for extracted recipe
 export interface ExtractedRecipe {
   title: string;
-  ingredients: string;
-  materials: string;
-  steps: string;
-  markdown: string;
+  ingredients: Ingredient[];
+  materials: Material[];
+  steps: Step[];
   tags: string[];
 }
 
@@ -52,30 +52,46 @@ const generateMockRecipe = (url: string): ExtractedRecipe => {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
   
+  // Create mock ingredients with IDs
+  const ingredients: Ingredient[] = [
+    { id: "ing1", name: "flour", quantity: "120", unit: "g" },
+    { id: "ing2", name: "eggs", quantity: "2" },
+    { id: "ing3", name: "milk", quantity: "240", unit: "ml" },
+    { id: "ing4", name: "salt", quantity: "2.5", unit: "g" }
+  ];
+  
+  // Create mock materials with IDs
+  const materials: Material[] = [
+    { id: "mat1", name: "mixing bowl", description: "large" },
+    { id: "mat2", name: "whisk" },
+    { id: "mat3", name: "measuring cups" },
+    { id: "mat4", name: "baking pan", description: "23x33 cm" }
+  ];
+  
+  // Create mock steps with references to ingredient and material IDs
+  const steps: Step[] = [
+    { 
+      action: "Mix the dry ingredients together", 
+      ingredients: ["ing1", "ing4"],
+      materials: ["mat1"]
+    },
+    { 
+      action: "Add wet ingredients and mix until smooth", 
+      ingredients: ["ing2", "ing3"],
+      materials: ["mat2"]
+    },
+    { 
+      action: "Pour into baking pan and bake according to preferences", 
+      ingredients: [],
+      materials: ["mat4"]
+    }
+  ];
+  
   return {
     title: recipeName || "Sample Recipe",
-    ingredients: "1 cup flour\n2 eggs\n1 cup milk\n1/2 teaspoon salt",
-    materials: "Bowl\nWhisk\nMeasuring cups\nBaking pan",
-    steps: "1. Mix dry ingredients\n2. Add wet ingredients\n3. Cook according to preferences",
-    markdown: `# ${recipeName || "Sample Recipe"}
-
-## Ingredients
-- 1 cup flour
-- 2 eggs
-- 1 cup milk
-- 1/2 teaspoon salt
-
-## Materials
-- Bowl
-- Whisk
-- Measuring cups
-- Baking pan
-
-## Instructions
-1. Mix dry ingredients
-2. Add wet ingredients
-3. Cook according to preferences
-`,
+    ingredients,
+    materials,
+    steps,
     tags: ["quick", "easy", "basic"]
   };
 };
@@ -89,22 +105,30 @@ export const extractRecipeDetails = async (url: string, content: string): Promis
         {
           role: "system",
           content: `You are a recipe extraction expert. Extract the following from the recipe content:
+
 1. Title of the recipe
-2. List of ingredients with quantities
+2. List of ingredients with quantities and units (convert all measurements to metric units: grams, milliliters, centimeters, Celsius)
 3. List of kitchen materials/tools needed
-4. Step-by-step instructions
-5. Create a markdown formatted version of the recipe that is well-structured and easy to read
-6. Generate a list of relevant tags and keywords for this recipe (cuisine type, dish type, main ingredients, dietary preferences like vegetarian, vegan, gluten-free, etc.)
+4. Step-by-step instructions with references to which ingredients and materials are used in each step
 
 Format your response as a JSON object with the following keys:
 - title: string
-- ingredients: string (with each ingredient on a new line)
-- materials: string (with each material on a new line)
-- steps: string (with each step on a new line)
-- markdown: string (with full markdown of the recipe)
-- tags: array of strings
+- ingredients: array of objects with { id: string, name: string, quantity?: string, unit?: string }
+- materials: array of objects with { id: string, name: string, description?: string }
+- steps: array of objects with { action: string, ingredients: string[], materials: string[] }
+- tags: array of strings (cuisine type, dish type, main ingredients, dietary preferences)
 
-Be accurate and comprehensive in your extraction. If certain information is clearly missing, indicate "Not specified" for that field.`
+Important rules:
+1. Assign a unique identifier (id) to each ingredient and material (e.g., "ing1", "ing2", "mat1", "mat2")
+2. Convert all measurements to metric units:
+   - Volume: milliliters (ml)
+   - Weight: grams (g)
+   - Length: centimeters (cm)
+   - Temperature: Celsius (°C)
+3. In the steps, reference ingredients and materials by their IDs
+4. If the same ingredient appears multiple times in different contexts, assign it a new ID each time
+
+Be accurate and comprehensive in your extraction. If certain information is clearly missing, provide empty arrays or reasonable defaults.`
         },
         {
           role: "user",
@@ -116,20 +140,16 @@ Be accurate and comprehensive in your extraction. If certain information is clea
 
     const result = JSON.parse(response.choices[0].message.content || "{}");
     
-    // Ensure all required fields are present
+    // Ensure all required fields are present with proper structure
     return {
       title: result.title || "Untitled Recipe",
-      ingredients: result.ingredients || "Not specified",
-      materials: result.materials || "Not specified",
-      steps: result.steps || "Not specified",
-      markdown: result.markdown || "",
+      ingredients: Array.isArray(result.ingredients) ? result.ingredients : [],
+      materials: Array.isArray(result.materials) ? result.materials : [],
+      steps: Array.isArray(result.steps) ? result.steps : [],
       tags: Array.isArray(result.tags) ? result.tags : []
     };
   } catch (error) {
     console.error('Error extracting recipe details with OpenAI:', error);
-    console.log('Falling back to mock recipe generation...');
-    
-    // Fall back to mock recipe generator when OpenAI API fails
-    return generateMockRecipe(url);
+    throw new Error('Failed to extract recipe details: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 }; 
