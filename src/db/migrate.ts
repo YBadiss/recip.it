@@ -1,12 +1,12 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
-
-// Database configuration
-const dbPath = path.join(__dirname, '../../data/recipes.db');
+import { Config } from '../config';
 
 // Initialize database
-export const initDatabase = (): Promise<void> => {
+export const initDatabase = (customDbPath?: string): Promise<void> => {
+  const dbPath = customDbPath || Config.DB_PATH;
+  
   return new Promise((resolve, reject) => {
     // Create database directory if it doesn't exist
     const dir = path.dirname(dbPath);
@@ -113,7 +113,8 @@ export const initDatabase = (): Promise<void> => {
 };
 
 // Get database connection
-export const getDatabase = (): sqlite3.Database => {
+export const getDatabase = (customDbPath?: string): sqlite3.Database => {
+  const dbPath = customDbPath || Config.DB_PATH;
   return new sqlite3.Database(dbPath);
 };
 
