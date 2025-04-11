@@ -40,3 +40,8 @@ logs/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Frontend specific
+frontend/dist/
+frontend/node_modules/
+frontend/.vite/
