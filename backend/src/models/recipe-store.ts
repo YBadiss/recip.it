@@ -11,6 +11,7 @@ export interface DbRow {
   materials: string;
   steps: string;
   tags: string;
+  imageUrl: string;
   created_at: string;
   updated_at: string;
   [key: string]: unknown;
@@ -73,8 +74,8 @@ export class RecipeStore {
       const preparedRecipe = this.prepareRecipeForDb({ ...recipe, id: recipeId });
 
       this.dbConnection.run(
-        `INSERT INTO recipes (id, title, link, ingredients, materials, steps, tags) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO recipes (id, title, link, ingredients, materials, steps, tags, imageUrl) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           preparedRecipe.id,
           preparedRecipe.title,
@@ -83,6 +84,7 @@ export class RecipeStore {
           preparedRecipe.materials,
           preparedRecipe.steps,
           preparedRecipe.tags,
+          preparedRecipe.imageUrl || '',
         ],
         function (err) {
           if (err) {
@@ -125,6 +127,10 @@ export class RecipeStore {
       if (preparedRecipe.tags) {
         updates.push('tags = ?');
         values.push(preparedRecipe.tags);
+      }
+      if (preparedRecipe.imageUrl !== undefined) {
+        updates.push('imageUrl = ?');
+        values.push(preparedRecipe.imageUrl);
       }
 
       if (updates.length === 0) {
@@ -202,6 +208,7 @@ export class RecipeStore {
       materials: JSON.parse(row.materials),
       steps: JSON.parse(row.steps),
       tags: JSON.parse(row.tags),
+      imageUrl: row.imageUrl,
       created_at: row.created_at,
       updated_at: row.updated_at,
     };

@@ -15,8 +15,8 @@ coverage/
 .env.production.local
 
 # Database files
-data/*.db
-data/*.sqlite
+backend/data/*.db
+backend/data/*.sqlite
 
 # Editor directories and files
 .vscode/*

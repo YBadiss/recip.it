@@ -35,6 +35,7 @@ export const initDatabase = (customDbPath?: string): Promise<void> => {
             materials JSON NOT NULL,
             steps JSON NOT NULL,
             tags JSON NOT NULL,
+            imageUrl TEXT,
             search_text TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

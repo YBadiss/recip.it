@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Container, Card, Form, Button, Alert } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { Container, Card, Form, Button, Alert, Breadcrumb } from 'react-bootstrap';
+import { useNavigate, Link } from 'react-router-dom';
 import { recipeApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -59,21 +59,30 @@ const ImportRecipePage: React.FC = () => {
 
   return (
     <Container className="py-4">
+      {/* Breadcrumb navigation */}
+      <Breadcrumb className="mb-3">
+        <Breadcrumb.Item linkAs={Link} linkProps={{ to: '/' }}>
+          My Recipes
+        </Breadcrumb.Item>
+        <Breadcrumb.Item active>Import Recipe</Breadcrumb.Item>
+      </Breadcrumb>
+      
       <h1 className="mb-4">Import Recipe</h1>
 
       <Card>
         <Card.Body>
-          <Card.Title>Import from URL</Card.Title>
           <Card.Text>
             Enter the URL of a recipe you&apos;d like to import. We&apos;ll extract the ingredients, steps,
             and other details automatically.
+          </Card.Text>
+          <Card.Text>
+            Make sure the URL links directly to the recipe page.
           </Card.Text>
 
           {error && <Alert variant="danger">{error}</Alert>}
 
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
-              <Form.Label>Recipe URL</Form.Label>
               <Form.Control
                 type="text"
                 placeholder="https://example.com/recipe"
@@ -82,17 +91,11 @@ const ImportRecipePage: React.FC = () => {
                 isInvalid={!!urlError}
               />
               {urlError && <Form.Control.Feedback type="invalid">{urlError}</Form.Control.Feedback>}
-              <Form.Text className="text-muted">
-                Make sure the URL links directly to the recipe page.
-              </Form.Text>
             </Form.Group>
 
-            <div className="d-grid gap-2">
-              <Button variant="success" type="submit">
+            <div className="d-grid">
+              <Button variant="outline-primary" type="submit">
                 Import Recipe
-              </Button>
-              <Button variant="outline-secondary" onClick={() => navigate('/')}>
-                Cancel
               </Button>
             </div>
           </Form>

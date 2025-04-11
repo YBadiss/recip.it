@@ -18,15 +18,12 @@ const Header: React.FC = () => {
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
-              <Nav.Link as={Link} to="/" className="px-3">
-                Home
-              </Nav.Link>
-              <Nav.Link as={Link} to="/import" className="px-3">
-                Import Recipe
-              </Nav.Link>
+              <span className="nav-tagline text-light d-flex align-items-center">
+                Your personal recipe collection app
+              </span>
             </Nav>
-            <Button variant="outline-light" className="px-4" onClick={() => navigate('/import')}>
-              <span className="me-2">+</span> New Recipe
+            <Button variant="primary" size="lg" className="px-4 new-recipe-btn" onClick={() => navigate('/import')}>
+              <span className="me-2">+</span> Import Recipe
             </Button>
           </Navbar.Collapse>
         </Container>

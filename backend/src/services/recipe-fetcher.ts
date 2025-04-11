@@ -11,6 +11,7 @@ export interface ExtractedRecipe {
   materials: Material[];
   steps: Step[];
   tags: string[];
+  imageUrl: string;
 }
 
 export class RecipeFetcher {
@@ -23,10 +24,34 @@ export class RecipeFetcher {
   }
 
   // Function to fetch the content of a recipe URL
-  async fetchRecipeContent(url: string): Promise<string> {
+  async fetchRecipeContent(url: string): Promise<{ text: string; imageUrl: string }> {
     try {
       const response = await this.axios.get(url);
       const $ = cheerio.load(response.data);
+
+      // Find potential recipe images - looking for large images in content areas
+      let imageUrl = '';
+      
+      // Look for common recipe image patterns - prioritize first large image
+      $('img').each((_, img) => {
+        if (!imageUrl && $(img).attr('src')) {
+          const src = $(img).attr('src') || '';
+          const alt = $(img).attr('alt') || '';
+          const width = $(img).attr('width') || '';
+          const height = $(img).attr('height') || '';
+          
+          // Check if image has food-related keywords in alt text or is reasonably sized
+          if ((alt.toLowerCase().includes('food') || 
+               alt.toLowerCase().includes('recipe') || 
+               alt.toLowerCase().includes('dish') ||
+               parseInt(width) > 300 || parseInt(height) > 300) && 
+              !src.includes('logo') && !src.includes('icon')) {
+            
+            // Ensure we have a full URL
+            imageUrl = src.startsWith('http') ? src : new URL(src, url).href;
+          }
+        }
+      });
 
       // Remove scripts, styles, and other non-content elements
       $('script, style, nav, header, footer, iframe, noscript').remove();
@@ -35,7 +60,10 @@ export class RecipeFetcher {
       const content = $('body').text().trim();
 
       // Clean up the content (remove excessive whitespace)
-      return content.replace(/\s+/g, ' ');
+      return { 
+        text: content.replace(/\s+/g, ' '),
+        imageUrl
+      };
     } catch (error) {
       console.error('Error fetching recipe content:', error);
       throw new Error(
@@ -47,7 +75,8 @@ export class RecipeFetcher {
   // Function to extract recipe details using OpenAI
   async extractRecipeDetails(
     url: string,
-    content: string
+    content: string,
+    imageUrl: string
   ): Promise<ExtractedRecipe> {
     try {
       const response = await this.openai.chat.completions.create({
@@ -98,6 +127,7 @@ Be accurate and comprehensive in your extraction. If certain information is clea
         materials: Array.isArray(result.materials) ? result.materials : [],
         steps: Array.isArray(result.steps) ? result.steps : [],
         tags: Array.isArray(result.tags) ? result.tags : [],
+        imageUrl: imageUrl || '',
       };
     } catch (error) {
       console.error('Error extracting recipe details with OpenAI:', error);
@@ -111,9 +141,9 @@ Be accurate and comprehensive in your extraction. If certain information is clea
   // Function to extract recipe from URL
   async extractRecipeFromUrl(url: string): Promise<ExtractedRecipe> {
     // Fetch content from the URL
-    const content = await this.fetchRecipeContent(url);
+    const { text, imageUrl } = await this.fetchRecipeContent(url);
 
     // Extract recipe details using OpenAI
-    return await this.extractRecipeDetails(url, content);
+    return await this.extractRecipeDetails(url, text, imageUrl);
   }
 } 

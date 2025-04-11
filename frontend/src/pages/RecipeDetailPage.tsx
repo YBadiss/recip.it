@@ -11,6 +11,7 @@ import {
   Alert,
   OverlayTrigger,
   Tooltip,
+  Breadcrumb,
 } from 'react-bootstrap';
 import { Recipe, Ingredient, Material } from '../types/recipe';
 import { recipeApi } from '../services/api';
@@ -105,17 +106,36 @@ const RecipeDetailPage: React.FC = () => {
 
   return (
     <Container>
-      <div className="d-flex justify-content-between align-items-start mb-4">
+      {/* Breadcrumb navigation */}
+      <Breadcrumb className="mb-3">
+        <Breadcrumb.Item linkAs={Link} linkProps={{ to: '/' }}>
+          My Recipes
+        </Breadcrumb.Item>
+        <Breadcrumb.Item active>{recipe.title}</Breadcrumb.Item>
+      </Breadcrumb>
+
+      <div className="d-flex justify-content-between align-items-start mb-2">
         <h1>{recipe.title}</h1>
         <div>
           <Button variant="outline-primary" className="me-2" onClick={handleReimport}>
-            Reimport
+            Re-import
           </Button>
           <Button variant="outline-danger" onClick={handleDelete}>
             Delete
           </Button>
         </div>
       </div>
+
+      {/* Tags section moved to top */}
+      {recipe.tags && recipe.tags.length > 0 && (
+        <div className="mb-4">
+          {recipe.tags.map((tag, index) => (
+            <Badge key={index} className="me-1 mb-1" bg="success" pill>
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {recipe.link && (
         <Card className="mb-4">
@@ -133,7 +153,7 @@ const RecipeDetailPage: React.FC = () => {
       <Row className="mb-4">
         <Col md={6}>
           <Card className="h-100">
-            <Card.Header className="bg-success text-white">Ingredients</Card.Header>
+            <Card.Header className="ingredients-header">Ingredients</Card.Header>
             <ListGroup variant="flush">
               {recipe.ingredients && recipe.ingredients.length > 0 ? (
                 recipe.ingredients.map(ingredient => (
@@ -154,7 +174,7 @@ const RecipeDetailPage: React.FC = () => {
         </Col>
         <Col md={6}>
           <Card className="h-100">
-            <Card.Header className="bg-warning text-dark">Materials</Card.Header>
+            <Card.Header className="materials-header">Materials</Card.Header>
             <ListGroup variant="flush">
               {recipe.materials && recipe.materials.length > 0 ? (
                 recipe.materials.map(material => (
@@ -174,7 +194,7 @@ const RecipeDetailPage: React.FC = () => {
       </Row>
 
       <Card>
-        <Card.Header className="bg-success text-white">Instructions</Card.Header>
+        <Card.Header className="instructions-header">Instructions</Card.Header>
         <Card.Body>
           {recipe.steps && recipe.steps.length > 0 ? (
             recipe.steps.map((step, index) => (
@@ -189,21 +209,11 @@ const RecipeDetailPage: React.FC = () => {
                       {step.ingredients.map(ingredientId => {
                         const ingredient = getIngredientById(ingredientId);
                         return ingredient ? (
-                          <OverlayTrigger
-                            key={ingredientId}
-                            placement="top"
-                            overlay={
-                              <Tooltip>
-                                {ingredient.quantity && ingredient.unit
-                                  ? `${ingredient.quantity} ${ingredient.unit}`
-                                  : 'No quantity specified'}
-                              </Tooltip>
-                            }
-                          >
-                            <Badge className="me-1 mb-1 badge-ingredient" pill>
-                              {ingredient.name}
-                            </Badge>
-                          </OverlayTrigger>
+                          <Badge className="me-1 mb-1 badge-ingredient" bg="none" pill>
+                            {ingredient.name} {ingredient.quantity && ingredient.unit
+                                ? `- ${ingredient.quantity} ${ingredient.unit}`
+                                : ''}
+                          </Badge>
                         ) : null;
                       })}
                     </div>
@@ -217,15 +227,9 @@ const RecipeDetailPage: React.FC = () => {
                       {step.materials.map(materialId => {
                         const material = getMaterialById(materialId);
                         return material ? (
-                          <OverlayTrigger
-                            key={materialId}
-                            placement="top"
-                            overlay={<Tooltip>{material.description || 'No description'}</Tooltip>}
-                          >
-                            <Badge className="me-1 mb-1 badge-material" pill>
-                              {material.name}
-                            </Badge>
-                          </OverlayTrigger>
+                          <Badge className="me-1 mb-1 badge-material" bg="none" pill>
+                            {material.name} {material.description ? `- ${material.description}` : ''}
+                          </Badge>
                         ) : null;
                       })}
                     </div>
@@ -238,23 +242,6 @@ const RecipeDetailPage: React.FC = () => {
           )}
         </Card.Body>
       </Card>
-
-      {recipe.tags && recipe.tags.length > 0 && (
-        <div className="mt-4">
-          <h5>Tags</h5>
-          {recipe.tags.map((tag, index) => (
-            <Badge key={index} className="me-1 mb-1" bg="success">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-4">
-        <Link to="/" className="btn btn-outline-primary">
-          Back to All Recipes
-        </Link>
-      </div>
     </Container>
   );
 };

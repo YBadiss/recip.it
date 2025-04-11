@@ -22,7 +22,7 @@ export interface Recipe {
   title: string;
   link: string;
   description?: string;
-  image?: string;
+  imageUrl?: string;
   cookTime?: string;
   ingredients?: Ingredient[];
   materials?: Material[];

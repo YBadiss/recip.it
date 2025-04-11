@@ -84,6 +84,7 @@ export class RecipeController {
           recipeData.materials = extractedRecipe.materials;
           recipeData.steps = extractedRecipe.steps;
           recipeData.tags = extractedRecipe.tags;
+          recipeData.imageUrl = extractedRecipe.imageUrl;
         } catch (extractError) {
           console.error('Error extracting recipe from URL:', extractError);
           res.status(400).json({
@@ -146,6 +147,7 @@ export class RecipeController {
           materials: extractedRecipe.materials,
           steps: extractedRecipe.steps,
           tags: extractedRecipe.tags,
+          imageUrl: extractedRecipe.imageUrl,
         };
 
         await this.recipeStore.updateRecipe(id, recipeData);

@@ -18,6 +18,16 @@
   --radius-lg: 0.5rem;
   --transition-base: all 0.2s ease-in-out;
   --spacing-unit: 0.25rem;
+  
+  /* Consistent colors for ingredients, materials, and tags */
+  --material-color: #d39ae6; /* peaceful purple */
+  --material-border: #c163e0;
+  --instructions-color: #9ae6b4; /* peaceful green */
+  --instructions-border: #68d391;
+  --ingredient-color: #90cdf4; /* peaceful blue */
+  --ingredient-border: #63b3ed;
+  --tag-color: #d6bcfa; /* peaceful purple */
+  --tag-border: #b794f4;
 }
 
 body {
@@ -133,13 +143,12 @@ a:hover {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
-  transition: var(--transition-base);
   overflow: hidden;
 }
 
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
+  transform: none;
+  box-shadow: var(--shadow-sm);
 }
 
 .recipe-card {
@@ -167,7 +176,7 @@ a:hover {
 }
 
 .recipe-card:hover .recipe-image {
-  transform: scale(1.05);
+  transform: none;
 }
 
 .recipe-card .card-title {
@@ -222,29 +231,33 @@ a:hover {
 }
 
 .ingredient-item {
-  background-color: rgba(56, 178, 172, 0.1);
-  border-left: 3px solid var(--primary-color);
+  background-color: white;
+  border-left: 3px solid var(--ingredient-border);
   padding: 0.75rem 1rem;
   margin-bottom: 0.75rem;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  transition: var(--transition-base);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .ingredient-item:hover {
-  background-color: rgba(56, 178, 172, 0.15);
+  background-color: white;
 }
 
 .material-item {
-  background-color: rgba(246, 173, 85, 0.1);
-  border-left: 3px solid var(--secondary-color);
+  background-color: white;
+  border-left: 3px solid var(--material-border);
   padding: 0.75rem 1rem;
   margin-bottom: 0.75rem;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  transition: var(--transition-base);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .material-item:hover {
-  background-color: rgba(246, 173, 85, 0.15);
+  background-color: white;
 }
 
 .step-item {
@@ -258,7 +271,7 @@ a:hover {
 }
 
 .step-item:hover {
-  box-shadow: var(--shadow-md);
+  background-color: inherit;
 }
 
 .badge {
@@ -269,13 +282,21 @@ a:hover {
 }
 
 .badge-ingredient {
-  background-color: var(--primary-light);
+  background-color: var(--ingredient-color);
   color: var(--text-color);
+  border: 1px solid var(--ingredient-border);
 }
 
 .badge-material {
-  background-color: var(--secondary-light);
+  background-color: var(--material-color);
   color: var(--text-color);
+  border: 1px solid var(--material-border);
+}
+
+.badge-tag {
+  background-color: var(--tag-color);
+  color: var(--text-color);
+  border: 1px solid var(--tag-border);
 }
 
 .form-control {
@@ -316,4 +337,43 @@ a:hover {
   h3 {
     font-size: 1.15rem;
   }
+}
+
+.new-recipe-btn {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.new-recipe-btn:hover {
+  background-color: var(--secondary-dark);
+  border-color: var(--secondary-dark);
+}
+
+.nav-tagline {
+  font-style: italic;
+  opacity: 0.9;
+}
+
+/* Section headers for ingredients and materials */
+.section-header {
+  padding: 1rem;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  font-weight: 600;
+}
+
+.ingredients-header {
+  background-color: var(--ingredient-color);
+  color: var(--text-color);
+}
+
+.instructions-header {
+  background-color: var(--instructions-color);
+  color: var(--text-color);
+}
+
+.materials-header {
+  background-color: var(--material-color);
+  color: var(--text-color);
 }

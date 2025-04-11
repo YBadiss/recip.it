@@ -8,19 +8,22 @@ import RecipeCard from '../components/RecipeCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const HomePage: React.FC = () => {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
+  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const searchQuery = searchParams.get('q') || '';
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
 
+  // Initial data fetch - load all recipes once
   useEffect(() => {
-    const fetchRecipes = async () => {
+    const fetchAllRecipes = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await recipeApi.getAll(searchQuery);
-        setRecipes(data);
+        const data = await recipeApi.getAll();
+        setAllRecipes(data);
+        setFilteredRecipes(data);
       } catch (err) {
         console.error('Error fetching recipes:', err);
         setError('Failed to load recipes. Please try again later.');
@@ -29,15 +32,38 @@ const HomePage: React.FC = () => {
       }
     };
 
-    fetchRecipes();
-  }, [searchQuery]);
+    fetchAllRecipes();
+  }, []);
 
-  const handleSearch = (query: string) => {
+  // Apply client-side filtering when search query changes
+  useEffect(() => {
+    if (!searchQuery) {
+      setFilteredRecipes(allRecipes);
+      return;
+    }
+    
+    const lowercaseQuery = searchQuery.toLowerCase();
+    const filtered = allRecipes.filter(recipe => 
+      recipe.title.toLowerCase().includes(lowercaseQuery) ||
+      (recipe.description && recipe.description.toLowerCase().includes(lowercaseQuery)) ||
+      (recipe.tags && recipe.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery)))
+    );
+    
+    setFilteredRecipes(filtered);
+  }, [searchQuery, allRecipes]);
+
+  // Update URL when search is explicitly submitted (not on every keystroke)
+  const handleSearchSubmit = (query: string) => {
     const params = new URLSearchParams();
     if (query) {
       params.set('q', query);
     }
     setSearchParams(params);
+  };
+
+  // Handle real-time search updates
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
   };
 
   if (loading) {
@@ -46,13 +72,15 @@ const HomePage: React.FC = () => {
 
   return (
     <div>
-      <h1 className="mb-4">My Recipes</h1>
-
-      <SearchBar onSearch={handleSearch} initialValue={searchQuery} />
+      <SearchBar 
+        onSearch={handleSearch} 
+        onSubmit={handleSearchSubmit}
+        initialValue={searchQuery} 
+      />
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      {recipes.length === 0 ? (
+      {filteredRecipes.length === 0 ? (
         <Alert variant="info">
           {searchQuery
             ? `No recipes found matching "${searchQuery}". Try a different search term.`
@@ -60,9 +88,12 @@ const HomePage: React.FC = () => {
         </Alert>
       ) : (
         <Row xs={1} md={2} lg={3} className="g-4">
-          {recipes.map(recipe => (
+          {filteredRecipes.map((recipe) => (
             <Col key={recipe.id}>
-              <RecipeCard recipe={recipe} />
+              <RecipeCard 
+                recipe={recipe} 
+                popIntensity='medium'
+              />
             </Col>
           ))}
         </Row>
