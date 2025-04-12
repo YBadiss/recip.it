@@ -24,6 +24,17 @@ export class RecipeStore {
 
   constructor(dbConnection: sqlite3.Database) {
     this.dbConnection = dbConnection;
+    // Create index on link column if it doesn't exist
+    this.ensureLinkIndex();
+  }
+
+  // Ensure the link index exists for faster lookups
+  private ensureLinkIndex(): void {
+    this.dbConnection.run('CREATE INDEX IF NOT EXISTS idx_recipes_link ON recipes(link)', err => {
+      if (err) {
+        console.error('Error creating link index:', err);
+      }
+    });
   }
 
   // Get all recipes with optional search parameters
@@ -66,6 +77,23 @@ export class RecipeStore {
         }
         resolve(row ? this.parseRecipe(row as DbRow) : null);
       });
+    });
+  }
+
+  // Get a recipe by normalized link
+  async getRecipeByNormalizedLink(normalizedLink: string): Promise<Recipe | null> {
+    return new Promise((resolve, reject) => {
+      this.dbConnection.get(
+        'SELECT * FROM recipes WHERE link = ?',
+        [normalizedLink],
+        (err, row) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(row ? this.parseRecipe(row as DbRow) : null);
+        }
+      );
     });
   }
 

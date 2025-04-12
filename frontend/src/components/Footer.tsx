@@ -8,8 +8,8 @@ const Footer: React.FC = () => {
     <footer className="footer mt-auto">
       <Container>
         <Row>
-          <Col className="text-center py-3">
-            <p className="mb-0 text-light">© {year} Recip.it - All Rights Reserved</p>
+          <Col className="text-center py-1">
+            <p className="mb-0 text-light">© {year} Recip.it</p>
           </Col>
         </Row>
       </Container>

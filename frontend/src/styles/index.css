@@ -240,8 +240,9 @@ a:hover {
 .footer {
   background-color: var(--primary-dark);
   color: var(--light-text);
-  padding: 2rem 0;
-  margin-top: 3rem;
+  padding: 0.75rem 0;
+  margin-top: 2rem;
+  font-size: 0.9rem;
 }
 
 .footer a {

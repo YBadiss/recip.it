@@ -23,7 +23,6 @@ const RecipeDetailPage: React.FC = () => {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [reimporting, setReimporting] = useState(false);
 
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -48,30 +47,14 @@ const RecipeDetailPage: React.FC = () => {
   const handleDelete = async () => {
     if (!id || !recipe) return;
 
-    if (window.confirm(`Are you sure you want to delete "${recipe.title}"?`)) {
+    if (window.confirm(`Are you sure you want to remove "${recipe.title}"?`)) {
       try {
         await recipeApi.delete(id);
         navigate('/');
       } catch (err) {
         console.error('Error deleting recipe:', err);
-        setError('Failed to delete recipe. Please try again.');
+        setError('Failed to remove recipe. Please try again.');
       }
-    }
-  };
-
-  const handleReimport = async () => {
-    if (!id) return;
-
-    try {
-      setReimporting(true);
-      setError(null);
-      const updatedRecipe = await recipeApi.reimport(id);
-      setRecipe(updatedRecipe);
-      setReimporting(false);
-    } catch (err) {
-      console.error('Error reimporting recipe:', err);
-      setError('Failed to reimport recipe. Please try again.');
-      setReimporting(false);
     }
   };
 
@@ -93,10 +76,6 @@ const RecipeDetailPage: React.FC = () => {
 
   if (loading) {
     return <LoadingSpinner />;
-  }
-
-  if (reimporting) {
-    return <LoadingSpinner message="Reimporting recipe from original source..." />;
   }
 
   if (error || !recipe) {
@@ -125,11 +104,8 @@ const RecipeDetailPage: React.FC = () => {
       <div className="d-flex justify-content-between align-items-start mb-2">
         <h1>{recipe.title}</h1>
         <div>
-          <Button variant="outline-primary" className="me-2" onClick={handleReimport}>
-            Re-import
-          </Button>
           <Button variant="outline-danger" onClick={handleDelete}>
-            Delete
+            Remove
           </Button>
         </div>
       </div>

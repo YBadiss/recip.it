@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { RecipeStore } from '../models/recipe-store';
 import { Recipe } from '../models/recipe';
 import { RecipeFetcher } from '../services/recipe-fetcher';
+import { normalizeUrl } from '../utils/url-normalizer';
 
 export class RecipeController {
   private recipeStore: RecipeStore;
@@ -75,10 +76,29 @@ export class RecipeController {
         return;
       }
 
-      // If link is provided, extract recipe details from URL
+      // If link is provided, process it
       if (recipeData.link) {
+        // Normalize the URL to avoid duplicates
+        const normalizedLink = normalizeUrl(recipeData.link);
+
+        // Store normalized link in recipe data
+        recipeData.link = normalizedLink;
+
+        // Check if recipe with this normalized link already exists
+        const existingRecipe = await this.recipeStore.getRecipeByNormalizedLink(normalizedLink);
+
+        if (existingRecipe) {
+          // Recipe already exists, return it instead of creating a new one
+          res.status(200).json({
+            ...existingRecipe,
+            message: 'Recipe with this URL already exists',
+          });
+          return;
+        }
+
+        // Recipe doesn't exist, extract details from URL
         try {
-          const extractedRecipe = await this.recipeFetcher.extractRecipeFromUrl(recipeData.link);
+          const extractedRecipe = await this.recipeFetcher.extractRecipeFromUrl(normalizedLink);
           recipeData.title = extractedRecipe.title;
           recipeData.ingredients = extractedRecipe.ingredients;
           recipeData.materials = extractedRecipe.materials;
