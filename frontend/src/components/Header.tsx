@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar, Container, Nav, Button, Image } from 'react-bootstrap';
+import { Navbar, Container, Nav, Button, Image, NavDropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, user, logout } = useAuth();
   const [isHidden, setIsHidden] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -29,6 +31,15 @@ const Header: React.FC = () => {
     };
   }, [isHidden, lastScrollY]);
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   return (
     <header className={`header-container ${isHidden ? 'header-hidden' : ''}`}>
       <Navbar expand="lg" variant="dark" className="py-0">
@@ -50,9 +61,45 @@ const Header: React.FC = () => {
                 Your personal recipe collection app
               </span>
             </Nav>
-            <Button variant="primary" size="sm" className="px-3 new-recipe-btn" onClick={() => navigate('/import')}>
-              <span className="me-1">+</span> Import Recipe
-            </Button>
+            
+            {isAuthenticated ? (
+              <>
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  className="px-3 me-3 new-recipe-btn" 
+                  onClick={() => navigate('/import')}
+                >
+                  <span className="me-1">+</span> Import Recipe
+                </Button>
+                
+                <NavDropdown 
+                  title={<i className="bi bi-person-circle fs-5"></i>}
+                  id="user-dropdown"
+                  align="end"
+                >
+                  {user ? (
+                    <NavDropdown.Item disabled className="text-muted">
+                      {user.username}
+                    </NavDropdown.Item>
+                  ) : (
+                    <NavDropdown.Item disabled className="text-muted">
+                      Authenticated User
+                    </NavDropdown.Item>
+                  )}
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item onClick={handleLogout}>
+                    <i className="bi bi-box-arrow-right me-2"></i>
+                    Logout
+                  </NavDropdown.Item>
+                </NavDropdown>
+              </>
+            ) : (
+              <Nav>
+                <Nav.Link as={Link} to="/login" className="me-2">Login</Nav.Link>
+                <Nav.Link as={Link} to="/register">Register</Nav.Link>
+              </Nav>
+            )}
           </Navbar.Collapse>
         </Container>
       </Navbar>

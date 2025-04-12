@@ -3,14 +3,17 @@ import { RecipeStore } from '../models/recipe-store';
 import { Recipe } from '../models/recipe';
 import { RecipeFetcher } from '../services/recipe-fetcher';
 import { normalizeUrl } from '../utils/url-normalizer';
+import { UserStore } from '../models/user-store';
 
 export class RecipeController {
   private recipeStore: RecipeStore;
   private recipeFetcher: RecipeFetcher;
+  private userStore: UserStore;
 
-  constructor(recipeStore: RecipeStore, recipeFetcher: RecipeFetcher) {
+  constructor(recipeStore: RecipeStore, recipeFetcher: RecipeFetcher, userStore: UserStore) {
     this.recipeStore = recipeStore;
     this.recipeFetcher = recipeFetcher;
+    this.userStore = userStore;
   }
 
   // Getter for recipeStore (for testing)
@@ -23,12 +26,32 @@ export class RecipeController {
     return this.recipeFetcher;
   }
 
-  // Get all recipes
+  // Get all recipes for the current user
   getAllRecipes = async (req: Request, res: Response): Promise<void> => {
     try {
+      if (!req.user || !req.user.userId) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
       const { q } = req.query;
-      const recipes = await this.recipeStore.getAllRecipes(q as string | undefined);
-      res.json(recipes);
+
+      // Get the list of recipe IDs this user has access to
+      const userRecipeIds = await this.userStore.getUserRecipes(req.user.userId);
+
+      if (userRecipeIds.length === 0) {
+        // User has no recipes yet
+        res.json([]);
+        return;
+      }
+
+      // Get recipes and filter based on user's access
+      const allRecipes = await this.recipeStore.getAllRecipes(q as string | undefined);
+      const userRecipes = allRecipes.filter(
+        recipe => recipe.id && userRecipeIds.includes(recipe.id)
+      );
+
+      res.json(userRecipes);
     } catch (error) {
       console.error('Error fetching recipes:', error);
       res.status(500).json({
@@ -41,6 +64,11 @@ export class RecipeController {
   // Get a single recipe by ID
   getRecipeById = async (req: Request, res: Response): Promise<void> => {
     try {
+      if (!req.user || !req.user.userId) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
       const { id } = req.params;
 
       if (!id) {
@@ -48,9 +76,10 @@ export class RecipeController {
         return;
       }
 
+      // Check if user has access to this recipe
       const recipe = await this.recipeStore.getRecipeById(id);
-
-      if (!recipe) {
+      const hasAccess = await this.userStore.userHasRecipe(req.user.userId, id);
+      if (!hasAccess || !recipe) {
         res.status(404).json({ error: 'Recipe not found' });
         return;
       }
@@ -68,37 +97,35 @@ export class RecipeController {
   // Create a new recipe
   createRecipe = async (req: Request, res: Response): Promise<void> => {
     try {
-      const recipeData = req.body;
-
-      // Basic validation
-      if (!recipeData.title && !recipeData.link) {
-        res.status(400).json({ error: 'Recipe must have either a title or a link' });
+      if (!req.user || !req.user.userId) {
+        res.status(401).json({ error: 'Authentication required' });
         return;
       }
 
-      // If link is provided, process it
-      if (recipeData.link) {
-        // Normalize the URL to avoid duplicates
-        const normalizedLink = normalizeUrl(recipeData.link);
+      const recipeData = req.body;
 
-        // Store normalized link in recipe data
-        recipeData.link = normalizedLink;
+      // Basic validation
+      if (!recipeData.link) {
+        res.status(400).json({ error: 'Recipe must have a link' });
+        return;
+      }
 
-        // Check if recipe with this normalized link already exists
-        const existingRecipe = await this.recipeStore.getRecipeByNormalizedLink(normalizedLink);
+      let recipeId = '';
+      let existingRecipe = null;
 
-        if (existingRecipe) {
-          // Recipe already exists, return it instead of creating a new one
-          res.status(200).json({
-            ...existingRecipe,
-            message: 'Recipe with this URL already exists',
-          });
-          return;
-        }
+      // Normalize the URL to avoid duplicates
+      recipeData.link = normalizeUrl(recipeData.link);
 
+      // Check if recipe with this normalized link already exists
+      existingRecipe = await this.recipeStore.getRecipeByNormalizedLink(recipeData.link);
+
+      if (existingRecipe && existingRecipe.id) {
+        // Recipe already exists, add it to the user's collection
+        recipeId = existingRecipe.id;
+      } else {
         // Recipe doesn't exist, extract details from URL
         try {
-          const extractedRecipe = await this.recipeFetcher.extractRecipeFromUrl(normalizedLink);
+          const extractedRecipe = await this.recipeFetcher.extractRecipeFromUrl(recipeData.link);
           recipeData.title = extractedRecipe.title;
           recipeData.ingredients = extractedRecipe.ingredients;
           recipeData.materials = extractedRecipe.materials;
@@ -107,6 +134,15 @@ export class RecipeController {
           recipeData.imageUrl = extractedRecipe.imageUrl;
           recipeData.cookingTime = extractedRecipe.cookingTime;
           recipeData.servings = extractedRecipe.servings;
+
+          // Ensure all required fields are present with valid defaults
+          recipeData.ingredients = recipeData.ingredients || [];
+          recipeData.materials = recipeData.materials || [];
+          recipeData.steps = recipeData.steps || [];
+          recipeData.tags = recipeData.tags || [];
+
+          // Create new recipe
+          recipeId = await this.recipeStore.createRecipe(recipeData);
         } catch (extractError) {
           console.error('Error extracting recipe from URL:', extractError);
           res.status(400).json({
@@ -117,15 +153,18 @@ export class RecipeController {
         }
       }
 
-      // Ensure all required fields are present with valid defaults
-      recipeData.ingredients = recipeData.ingredients || [];
-      recipeData.materials = recipeData.materials || [];
-      recipeData.steps = recipeData.steps || [];
-      recipeData.tags = recipeData.tags || [];
+      // Add the recipe to the user's collection
+      await this.userStore.addRecipeToUser(req.user.userId, recipeId);
 
-      const recipeId = await this.recipeStore.createRecipe(recipeData);
+      // Get the complete recipe to return
       const recipe = await this.recipeStore.getRecipeById(recipeId);
-      res.status(201).json(recipe);
+
+      res.status(201).json({
+        ...recipe,
+        message: existingRecipe
+          ? 'Existing recipe added to your collection'
+          : 'Recipe created successfully',
+      });
     } catch (error) {
       console.error('Error creating recipe:', error);
       res.status(500).json({
@@ -138,6 +177,11 @@ export class RecipeController {
   // Re-import a recipe from its original link
   reimportRecipe = async (req: Request, res: Response): Promise<void> => {
     try {
+      if (!req.user || !req.user.userId) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
       const { id } = req.params;
 
       if (!id) {
@@ -145,16 +189,12 @@ export class RecipeController {
         return;
       }
 
+      // Check if user has access to this recipe
+      const hasAccess = await this.userStore.userHasRecipe(req.user.userId, id);
       // Get the existing recipe
       const existingRecipe = await this.recipeStore.getRecipeById(id);
-
-      if (!existingRecipe) {
+      if (!hasAccess || !existingRecipe) {
         res.status(404).json({ error: 'Recipe not found' });
-        return;
-      }
-
-      if (!existingRecipe.link) {
-        res.status(400).json({ error: 'Recipe has no associated link' });
         return;
       }
 
@@ -195,9 +235,14 @@ export class RecipeController {
     }
   };
 
-  // Delete a recipe
-  deleteRecipe = async (req: Request, res: Response): Promise<void> => {
+  // Remove a recipe from user's collection
+  removeRecipe = async (req: Request, res: Response): Promise<void> => {
     try {
+      if (!req.user || !req.user.userId) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
       const { id } = req.params;
 
       if (!id) {
@@ -205,20 +250,34 @@ export class RecipeController {
         return;
       }
 
-      await this.recipeStore.deleteRecipe(id);
-      res.json({ message: 'Recipe deleted successfully' });
+      // Check if user has access to this recipe
+      const hasAccess = await this.userStore.userHasRecipe(req.user.userId, id);
+      if (!hasAccess) {
+        res.status(404).json({ error: 'Recipe not found' });
+        return;
+      }
+
+      // Remove recipe from user's collection
+      await this.userStore.removeRecipeFromUser(req.user.userId, id);
+
+      res.json({ message: 'Recipe removed from your collection' });
     } catch (error) {
-      console.error('Error deleting recipe:', error);
+      console.error('Error removing recipe:', error);
       res.status(500).json({
-        error: 'Failed to delete recipe',
+        error: 'Failed to remove recipe',
         details: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };
 
-  // Search recipes
+  // Search recipes for the current user
   searchRecipes = async (req: Request, res: Response): Promise<void> => {
     try {
+      if (!req.user || !req.user.userId) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
       const { q } = req.query;
 
       if (!q || typeof q !== 'string') {
@@ -226,35 +285,26 @@ export class RecipeController {
         return;
       }
 
-      const recipes = await this.recipeStore.searchRecipes(q);
-      res.json(recipes);
+      // Get the list of recipe IDs this user has access to
+      const userRecipeIds = await this.userStore.getUserRecipes(req.user.userId);
+
+      if (userRecipeIds.length === 0) {
+        // User has no recipes yet
+        res.json([]);
+        return;
+      }
+
+      // Search recipes and filter based on user's access
+      const searchResults = await this.recipeStore.searchRecipes(q);
+      const userSearchResults = searchResults.filter(
+        recipe => recipe.id && userRecipeIds.includes(recipe.id)
+      );
+
+      res.json(userSearchResults);
     } catch (error) {
       console.error('Error searching recipes:', error);
       res.status(500).json({
         error: 'Failed to search recipes',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  };
-
-  // Update a recipe
-  updateRecipe = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { id } = req.params;
-      const recipeData = req.body;
-
-      if (!id) {
-        res.status(400).json({ error: 'Recipe ID is required' });
-        return;
-      }
-
-      await this.recipeStore.updateRecipe(id, recipeData);
-      const updatedRecipe = await this.recipeStore.getRecipeById(id);
-      res.json(updatedRecipe);
-    } catch (error) {
-      console.error('Error updating recipe:', error);
-      res.status(500).json({
-        error: 'Failed to update recipe',
         details: error instanceof Error ? error.message : 'Unknown error',
       });
     }

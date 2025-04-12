@@ -38,4 +38,20 @@ export class Config {
   static get OPENAI_MODEL(): string {
     return process.env.OPENAI_MODEL || 'gpt-4o';
   }
+
+  static get JWT_SECRET(): string {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.warn('JWT_SECRET is not set in environment variables');
+    }
+    return secret || 'default-jwt-secret-key-for-development-only';
+  }
+
+  static get JWT_EXPIRATION(): string {
+    return process.env.JWT_EXPIRATION || '24h';
+  }
+
+  static get COOKIE_NAME(): string {
+    return process.env.COOKIE_NAME || 'recipeit_token';
+  }
 }

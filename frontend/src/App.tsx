@@ -6,22 +6,37 @@ import HomePage from './pages/HomePage';
 import RecipeDetailPage from './pages/RecipeDetailPage';
 import ImportRecipePage from './pages/ImportRecipePage';
 import NotFoundPage from './pages/NotFoundPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   return (
-    <div className="d-flex flex-column min-vh-100">
-      <Header />
-      <Container className="flex-grow-1 pt-6 pb-4 main-content">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
-          <Route path="/import" element={<ImportRecipePage />} />
-          <Route path="/404" element={<NotFoundPage />} />
-          <Route path="*" element={<Navigate to="/404" replace />} />
-        </Routes>
-      </Container>
-      <Footer />
-    </div>
+    <AuthProvider>
+      <div className="d-flex flex-column min-vh-100">
+        <Header />
+        <Container className="flex-grow-1 pt-6 pb-4 main-content">
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/404" element={<NotFoundPage />} />
+            
+            {/* Protected routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+              <Route path="/import" element={<ImportRecipePage />} />
+            </Route>
+            
+            {/* Catch-all route */}
+            <Route path="*" element={<Navigate to="/404" replace />} />
+          </Routes>
+        </Container>
+        <Footer />
+      </div>
+    </AuthProvider>
   );
 }
 

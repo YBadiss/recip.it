@@ -9,8 +9,6 @@ import {
   Button,
   ListGroup,
   Alert,
-  OverlayTrigger,
-  Tooltip,
   Breadcrumb,
 } from 'react-bootstrap';
 import { Recipe, Ingredient, Material } from '../types/recipe';
@@ -35,6 +33,8 @@ const RecipeDetailPage: React.FC = () => {
         setRecipe(data);
       } catch (err) {
         console.error('Error fetching recipe:', err);
+        // Check if it's a 404 error (axios already handles redirect to /404)
+        // For other errors, just set the error message
         setError('Failed to load recipe. It may have been deleted or is unavailable.');
       } finally {
         setLoading(false);
@@ -47,14 +47,12 @@ const RecipeDetailPage: React.FC = () => {
   const handleDelete = async () => {
     if (!id || !recipe) return;
 
-    if (window.confirm(`Are you sure you want to remove "${recipe.title}"?`)) {
-      try {
-        await recipeApi.delete(id);
-        navigate('/');
-      } catch (err) {
-        console.error('Error deleting recipe:', err);
-        setError('Failed to remove recipe. Please try again.');
-      }
+    try {
+      await recipeApi.delete(id);
+      navigate('/');
+    } catch (err) {
+      console.error('Error deleting recipe:', err);
+      setError('Failed to remove recipe. Please try again.');
     }
   };
 

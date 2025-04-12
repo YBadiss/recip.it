@@ -116,7 +116,86 @@ export const initDatabase = (customDbPath?: string): Promise<void> => {
                           reject(err);
                           return;
                         }
-                        resolve();
+
+                        // Create users table
+                        db.run(
+                          `
+                          CREATE TABLE IF NOT EXISTS users (
+                            id TEXT PRIMARY KEY,
+                            username TEXT NOT NULL UNIQUE,
+                            password TEXT NOT NULL,
+                            authorized_endpoints JSON NOT NULL,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                          )
+                        `,
+                          err => {
+                            if (err) {
+                              reject(err);
+                              return;
+                            }
+
+                            // Create index on username for faster lookups
+                            db.run(
+                              `
+                              CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)
+                            `,
+                              err => {
+                                if (err) {
+                                  reject(err);
+                                  return;
+                                }
+
+                                // Create user_recipes table for many-to-many relationship
+                                db.run(
+                                  `
+                                  CREATE TABLE IF NOT EXISTS user_recipes (
+                                    id TEXT PRIMARY KEY,
+                                    user_id TEXT NOT NULL,
+                                    recipe_id TEXT NOT NULL,
+                                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                    FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+                                    UNIQUE (user_id, recipe_id)
+                                  )
+                                `,
+                                  err => {
+                                    if (err) {
+                                      reject(err);
+                                      return;
+                                    }
+
+                                    // Create indices on user_id and recipe_id for faster lookups
+                                    db.run(
+                                      `
+                                      CREATE INDEX IF NOT EXISTS idx_user_recipes_user_id ON user_recipes(user_id)
+                                    `,
+                                      err => {
+                                        if (err) {
+                                          reject(err);
+                                          return;
+                                        }
+
+                                        db.run(
+                                          `
+                                          CREATE INDEX IF NOT EXISTS idx_user_recipes_recipe_id ON user_recipes(recipe_id)
+                                        `,
+                                          err => {
+                                            if (err) {
+                                              reject(err);
+                                              return;
+                                            }
+                                            resolve();
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
                       }
                     );
                   }

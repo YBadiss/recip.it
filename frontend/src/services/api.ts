@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Recipe, RecipeImport } from '../types/recipe';
+import { LoginCredentials, RegisterData, User, UserResponse } from '../types/user';
 
 // Use environment variable with fallback
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -12,7 +13,67 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important for cookies
 });
+
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Add response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Handle 404 errors
+    if (error.response && error.response.status === 404) {
+      // Redirect to NotFoundPage
+      window.location.href = '/404';
+      return new Promise(() => {}); // This prevents further error handling
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Authentication API functions
+export const authApi = {
+  // Register a new user
+  register: async (userData: RegisterData): Promise<User> => {
+    const response = await api.post<UserResponse>('/users/register', userData);
+    // Store token if it's in the response headers
+    const token = response.headers['authorization']?.replace('Bearer ', '');
+    if (token) localStorage.setItem('token', token);
+    return response.data.user;
+  },
+
+  // Login user
+  login: async (credentials: LoginCredentials): Promise<User> => {
+    const response = await api.post<UserResponse>('/users/login', credentials);
+    // Store token if it's in the response headers
+    const token = response.headers['authorization']?.replace('Bearer ', '');
+    if (token) localStorage.setItem('token', token);
+    return response.data.user;
+  },
+
+  // Logout user
+  logout: async (): Promise<void> => {
+    await api.post('/users/logout');
+    localStorage.removeItem('token');
+  },
+
+  // Get current user profile
+  getCurrentUser: async (): Promise<User> => {
+    const response = await api.get<UserResponse>('/users/profile');
+    return response.data.user;
+  },
+};
 
 // API functions for recipes
 export const recipeApi = {
@@ -55,7 +116,7 @@ export const recipeApi = {
 
   // Delete a recipe
   delete: async (id: string): Promise<void> => {
-    await api.delete(`/recipes/${id}`);
+    await api.post(`/recipes/${id}/remove`); // Updated to use POST /recipes/:id/remove
   },
 };
 
