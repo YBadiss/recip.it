@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navbar, Container, Nav, Button } from 'react-bootstrap';
+import { Navbar, Container, Nav, Button, Image } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Header: React.FC = () => {
@@ -10,9 +10,13 @@ const Header: React.FC = () => {
       <Navbar expand="lg" variant="dark">
         <Container>
           <Navbar.Brand as={Link} to="/">
-            <span role="img" aria-label="recipe" className="me-2">
-              🍲
-            </span>
+            <Image 
+              src="/images/header.png" 
+              alt="Recip.it logo" 
+              className="header-logo me-2" 
+              width="60" 
+              height="60"
+            />
             <span className="brand-text">Recip.it</span>
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />

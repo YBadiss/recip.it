@@ -3,6 +3,7 @@ import { AxiosInstance } from 'axios';
 import * as cheerio from 'cheerio';
 import { Ingredient, Material, Step } from '../models/recipe';
 import { Config } from '../config';
+import { ChatCompletionMessageParam } from 'openai/resources/chat';
 
 // Interface for extracted recipe
 export interface ExtractedRecipe {
@@ -29,29 +30,12 @@ export class RecipeFetcher {
       const response = await this.axios.get(url);
       const $ = cheerio.load(response.data);
 
-      // Find potential recipe images - looking for large images in content areas
+      // Try to find og:image meta tag
       let imageUrl = '';
-      
-      // Look for common recipe image patterns - prioritize first large image
-      $('img').each((_, img) => {
-        if (!imageUrl && $(img).attr('src')) {
-          const src = $(img).attr('src') || '';
-          const alt = $(img).attr('alt') || '';
-          const width = $(img).attr('width') || '';
-          const height = $(img).attr('height') || '';
-          
-          // Check if image has food-related keywords in alt text or is reasonably sized
-          if ((alt.toLowerCase().includes('food') || 
-               alt.toLowerCase().includes('recipe') || 
-               alt.toLowerCase().includes('dish') ||
-               parseInt(width) > 300 || parseInt(height) > 300) && 
-              !src.includes('logo') && !src.includes('icon')) {
-            
-            // Ensure we have a full URL
-            imageUrl = src.startsWith('http') ? src : new URL(src, url).href;
-          }
-        }
-      });
+      const ogImage = $('meta[property="og:image"]').attr('content');
+      if (ogImage) {
+        imageUrl = ogImage;
+      }
 
       // Remove scripts, styles, and other non-content elements
       $('script, style, nav, header, footer, iframe, noscript').remove();
@@ -78,13 +62,10 @@ export class RecipeFetcher {
     content: string,
     imageUrl: string
   ): Promise<ExtractedRecipe> {
-    try {
-      const response = await this.openai.chat.completions.create({
-        model: Config.OPENAI_MODEL,
-        messages: [
-          {
-            role: 'system',
-            content: `You are a recipe extraction expert. Extract the following from the recipe content:
+    const messages: ChatCompletionMessageParam[] = [
+      {
+        role: 'system',
+        content: `You are a recipe extraction expert. Extract the following from the recipe content:
 
 1. Title of the recipe
 2. List of ingredients with quantities and units (convert all measurements to metric units: grams, milliliters, centimeters, Celsius)
@@ -107,16 +88,26 @@ Important rules:
    - Temperature: Celsius (°C)
 3. In the steps, reference ingredients and materials by their IDs
 4. If the same ingredient appears multiple times in different contexts, assign it a new ID each time
+5. Preserve the original language of the recipe - do not translate it
 
 Be accurate and comprehensive in your extraction. If certain information is clearly missing, provide empty arrays or reasonable defaults.`,
-          },
-          {
-            role: 'user',
-            content: `Recipe URL: ${url}\n\nContent: ${content}`,
-          },
-        ],
+      },
+      {
+        role: 'user',
+        content: `Recipe URL: ${url}\n\nContent: ${content}`,
+      },
+    ];
+
+    console.log(messages);
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: Config.OPENAI_MODEL,
+        messages,
         response_format: { type: 'json_object' },
       });
+
+      console.log(response.choices[0].message.content);
 
       const result = JSON.parse(response.choices[0].message.content || '{}');
 

@@ -60,18 +60,6 @@ const cardStyle = {
   borderColor: 'rgba(0, 0, 0, 0.125)',
 };
 
-const imageContainerStyle = {
-  overflow: 'hidden',
-  position: 'relative' as const,
-};
-
-const imageStyle = {
-  height: '200px',
-  objectFit: 'cover' as const,
-  width: '100%',
-  transition: 'transform 0.3s ease',
-};
-
 const RecipeCard: React.FC<RecipeCardProps> = ({ 
   recipe,
   popIntensity = 'medium'
@@ -84,8 +72,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   
   // Function to get a default image if recipe doesn't have one
   const getRecipeImage = () => {
-    return recipe.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image';
+    return recipe.imageUrl || '/images/recipe-placeholder.png';
   };
+
+  // Determine if we're using a placeholder image
+  const isPlaceholder = !recipe.imageUrl;
 
   const handleCardClick = () => {
     navigate(`/recipes/${recipe.id}`);
@@ -93,7 +84,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
   return (
     <Card 
-      className="recipe-card h-100 shadow-sm" 
+      className="recipe-card h-100 shadow-sm clickable-card" 
       onClick={handleCardClick}
       style={{
         ...cardStyle,
@@ -102,14 +93,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div style={imageContainerStyle}>
+      <div className="recipe-image-container">
         <img 
           src={getRecipeImage()} 
-          className="card-img-top recipe-image" 
-          alt={recipe.title} 
+          className="recipe-image" 
+          alt={recipe.title}
           style={{
-            ...imageStyle,
-            ...(isHovered ? popEffect.image : {})
+            ...(isHovered ? popEffect.image : {}),
+            ...(isPlaceholder ? { objectPosition: 'center bottom' } : {})
           }}
         />
       </div>

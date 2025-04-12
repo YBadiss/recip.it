@@ -193,7 +193,7 @@ a:hover {
 .header-container {
   background-color: var(--primary-color);
   color: var(--light-text);
-  padding: 1rem 0;
+  padding: 1.25rem 0;
   box-shadow: var(--shadow-md);
   position: sticky;
   top: 0;
@@ -202,8 +202,18 @@ a:hover {
 
 .navbar-brand {
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   letter-spacing: -0.025em;
+  display: flex;
+  align-items: center;
+}
+
+.header-logo {
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+  max-height: 60px;
+  width: auto;
 }
 
 .navbar-dark .navbar-nav .nav-link {
@@ -376,4 +386,32 @@ a:hover {
 .materials-header {
   background-color: var(--material-color);
   color: var(--text-color);
+}
+
+/* Recipe detail image */
+.recipe-detail-image-container {
+  max-height: 400px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  background-color: #f0f0e8;
+}
+
+.recipe-detail-image-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.1) 100%);
+  pointer-events: none;
+}
+
+.recipe-detail-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  display: block;
 }

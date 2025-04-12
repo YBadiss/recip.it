@@ -83,6 +83,14 @@ const RecipeDetailPage: React.FC = () => {
     return recipe?.materials?.find(mat => mat.id === materialId);
   };
 
+  // Function to get recipe image or placeholder
+  const getRecipeImage = () => {
+    return recipe?.imageUrl || '/images/recipe-placeholder-large.png';
+  };
+
+  // Determine if we're using a placeholder image
+  const isPlaceholder = !recipe?.imageUrl;
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -136,6 +144,16 @@ const RecipeDetailPage: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Recipe image */}
+      <div className="mb-4 recipe-detail-image-container">
+        <img 
+          src={getRecipeImage()} 
+          alt={recipe.title}
+          className="recipe-detail-image" 
+          style={isPlaceholder ? { objectPosition: 'center bottom' } : undefined}
+        />
+      </div>
 
       {recipe.link && (
         <Card className="mb-4">
