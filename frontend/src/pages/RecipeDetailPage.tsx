@@ -145,28 +145,65 @@ const RecipeDetailPage: React.FC = () => {
         </div>
       )}
 
+      {/* Recipe info */}
+      <div className="recipe-info mb-4">
+        <Row>
+          <Col md={4} className="mb-3 mb-md-0">
+            <Card className="h-100">
+              <Card.Body className="d-flex align-items-center">
+                <i className="bi bi-clock fs-3 me-3 text-success"></i>
+                <div>
+                  <div className="text-muted small">Cooking Time</div>
+                  <div className="fw-bold">{recipe.cookingTime || recipe.cookTime || 'Not specified'}</div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={4} className="mb-3 mb-md-0">
+            <Card className="h-100">
+              <Card.Body className="d-flex align-items-center">
+                <i className="bi bi-people fs-3 me-3 text-success"></i>
+                <div>
+                  <div className="text-muted small">Servings</div>
+                  <div className="fw-bold">{recipe.servings ? `${recipe.servings} servings` : 'Not specified'}</div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          {recipe.link && (
+            <Col md={4}>
+              <Card className="h-100">
+                <Card.Body className="d-flex align-items-center">
+                  <i className="bi bi-link-45deg fs-3 me-3 text-success"></i>
+                  <div className="w-100">
+                    <div className="text-muted small">Original Recipe</div>
+                    <div className="fw-bold text-truncate">
+                      <a 
+                        href={recipe.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        title={recipe.link}
+                      >
+                        {recipe.link.length > 30 ? `${recipe.link.substring(0, 30)}...` : recipe.link}
+                      </a>
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          )}
+        </Row>
+      </div>
+
       {/* Recipe image */}
       <div className="mb-4 recipe-detail-image-container">
         <img 
           src={getRecipeImage()} 
           alt={recipe.title}
           className="recipe-detail-image" 
-          style={isPlaceholder ? { objectPosition: 'center bottom' } : undefined}
+          style={isPlaceholder ? { objectPosition: 'center center' } : undefined}
         />
       </div>
-
-      {recipe.link && (
-        <Card className="mb-4">
-          <Card.Body>
-            <Card.Title>Original Recipe</Card.Title>
-            <Card.Text>
-              <a href={recipe.link} target="_blank" rel="noopener noreferrer">
-                {recipe.link}
-              </a>
-            </Card.Text>
-          </Card.Body>
-        </Card>
-      )}
 
       <Row className="mb-4">
         <Col md={6}>
@@ -217,12 +254,10 @@ const RecipeDetailPage: React.FC = () => {
           {recipe.steps && recipe.steps.length > 0 ? (
             recipe.steps.map((step, index) => (
               <div key={index} className="step-item">
-                <h5>Step {index + 1}</h5>
-                <p>{step.action}</p>
+                <p>{index + 1}. {step.action}</p>
 
                 {step.ingredients && step.ingredients.length > 0 && (
                   <div className="mb-2">
-                    <strong>Ingredients for this step:</strong>
                     <div>
                       {step.ingredients.map(ingredientId => {
                         const ingredient = getIngredientById(ingredientId);
@@ -240,7 +275,6 @@ const RecipeDetailPage: React.FC = () => {
 
                 {step.materials && step.materials.length > 0 && (
                   <div>
-                    <strong>Materials needed:</strong>
                     <div>
                       {step.materials.map(materialId => {
                         const material = getMaterialById(materialId);

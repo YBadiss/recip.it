@@ -11,7 +11,7 @@ function App() {
   return (
     <div className="d-flex flex-column min-vh-100">
       <Header />
-      <Container className="flex-grow-1 py-4">
+      <Container className="flex-grow-1 pt-6 pb-4 main-content">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/recipes/:id" element={<RecipeDetailPage />} />

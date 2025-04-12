@@ -111,7 +111,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           <Col>
             <div className="d-flex align-items-center text-muted small">
               <i className="bi bi-clock me-1"></i>
-              <span>{recipe.cookTime || 'N/A'}</span>
+              <span>{recipe.cookingTime || recipe.cookTime || 'N/A'}</span>
+
+              <span className="mx-2">•</span>
+
+              <i className="bi bi-people me-1"></i>
+              <span>{recipe.servings ? `${recipe.servings} servings` : '-'}</span>
 
               <span className="mx-2">•</span>
 

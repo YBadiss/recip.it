@@ -12,6 +12,8 @@ export interface DbRow {
   steps: string;
   tags: string;
   imageUrl: string;
+  cookingTime: string;
+  servings: number;
   created_at: string;
   updated_at: string;
   [key: string]: unknown;
@@ -74,8 +76,8 @@ export class RecipeStore {
       const preparedRecipe = this.prepareRecipeForDb({ ...recipe, id: recipeId });
 
       this.dbConnection.run(
-        `INSERT INTO recipes (id, title, link, ingredients, materials, steps, tags, imageUrl) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO recipes (id, title, link, ingredients, materials, steps, tags, imageUrl, cookingTime, servings) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           preparedRecipe.id,
           preparedRecipe.title,
@@ -85,6 +87,8 @@ export class RecipeStore {
           preparedRecipe.steps,
           preparedRecipe.tags,
           preparedRecipe.imageUrl || '',
+          preparedRecipe.cookingTime || '',
+          preparedRecipe.servings || 0,
         ],
         function (err) {
           if (err) {
@@ -132,6 +136,14 @@ export class RecipeStore {
         updates.push('imageUrl = ?');
         values.push(preparedRecipe.imageUrl);
       }
+      if (preparedRecipe.cookingTime !== undefined) {
+        updates.push('cookingTime = ?');
+        values.push(preparedRecipe.cookingTime);
+      }
+      if (preparedRecipe.servings !== undefined) {
+        updates.push('servings = ?');
+        values.push(preparedRecipe.servings);
+      }
 
       if (updates.length === 0) {
         resolve();
@@ -139,13 +151,17 @@ export class RecipeStore {
       }
 
       values.push(id);
-      this.dbConnection.run(`UPDATE recipes SET ${updates.join(', ')} WHERE id = ?`, values, err => {
-        if (err) {
-          reject(err);
-          return;
+      this.dbConnection.run(
+        `UPDATE recipes SET ${updates.join(', ')} WHERE id = ?`,
+        values,
+        err => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
         }
-        resolve();
-      });
+      );
     });
   }
 
@@ -209,6 +225,8 @@ export class RecipeStore {
       steps: JSON.parse(row.steps),
       tags: JSON.parse(row.tags),
       imageUrl: row.imageUrl,
+      cookingTime: row.cookingTime,
+      servings: row.servings,
       created_at: row.created_at,
       updated_at: row.updated_at,
     };
@@ -230,4 +248,4 @@ export class RecipeStore {
       tags: JSON.stringify(tags),
     };
   }
-} 
+}

@@ -67,7 +67,9 @@ describe('Full Recipe Import Flow E2E Tests', () => {
       ingredients: [{ id: 'ing1', name: 'Ingredient 1' }],
       materials: [],
       steps: [{ action: 'Step 1', ingredients: ['ing1'] }],
-      tags: ['tag1']
+      tags: ['tag1'],
+      cookingTime: '15 minutes',
+      servings: 2
     };
     
     const recipe2: Recipe = {
@@ -76,7 +78,9 @@ describe('Full Recipe Import Flow E2E Tests', () => {
       ingredients: [{ id: 'ing2', name: 'Ingredient 2' }],
       materials: [],
       steps: [{ action: 'Step 1', ingredients: ['ing2'] }],
-      tags: ['tag2']
+      tags: ['tag2'],
+      cookingTime: '20 minutes',
+      servings: 4
     };
     
     // Insert recipes in order - the newest one should have the latest timestamp
@@ -118,7 +122,9 @@ describe('Full Recipe Import Flow E2E Tests', () => {
       ],
       materials: [],
       steps: [{ action: 'Mix chocolate and flour', ingredients: ['ing1', 'ing2'] }],
-      tags: ['dessert', 'chocolate']
+      tags: ['dessert', 'chocolate'],
+      cookingTime: '45 minutes',
+      servings: 8
     };
     
     const recipe2: Recipe = {
@@ -130,7 +136,9 @@ describe('Full Recipe Import Flow E2E Tests', () => {
       ],
       materials: [],
       steps: [{ action: 'Mix vanilla and milk', ingredients: ['ing1', 'ing2'] }],
-      tags: ['dessert', 'vanilla']
+      tags: ['dessert', 'vanilla'],
+      cookingTime: '20 minutes',
+      servings: 4
     };
     
     const id1 = await recipeStore.createRecipe(recipe1);
@@ -168,7 +176,10 @@ function createMockRecipeFetcher(): RecipeFetcher {
       { action: 'URL Step 1', ingredients: ['ing1'], materials: ['mat1'] },
       { action: 'URL Step 2', ingredients: ['ing2'] }
     ],
-    tags: ['url-tag1', 'url-tag2']
+    tags: ['url-tag1', 'url-tag2'],
+    imageUrl: '',
+    cookingTime: '25 minutes',
+    servings: 2
   }));
   
   return mockFetcher;

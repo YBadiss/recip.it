@@ -85,6 +85,8 @@ export class RecipeController {
           recipeData.steps = extractedRecipe.steps;
           recipeData.tags = extractedRecipe.tags;
           recipeData.imageUrl = extractedRecipe.imageUrl;
+          recipeData.cookingTime = extractedRecipe.cookingTime;
+          recipeData.servings = extractedRecipe.servings;
         } catch (extractError) {
           console.error('Error extracting recipe from URL:', extractError);
           res.status(400).json({
@@ -148,6 +150,8 @@ export class RecipeController {
           steps: extractedRecipe.steps,
           tags: extractedRecipe.tags,
           imageUrl: extractedRecipe.imageUrl,
+          cookingTime: extractedRecipe.cookingTime,
+          servings: extractedRecipe.servings,
         };
 
         await this.recipeStore.updateRecipe(id, recipeData);
@@ -235,4 +239,4 @@ export class RecipeController {
       });
     }
   };
-} 
+}

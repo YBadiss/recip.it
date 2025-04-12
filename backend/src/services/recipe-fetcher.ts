@@ -13,6 +13,8 @@ export interface ExtractedRecipe {
   steps: Step[];
   tags: string[];
   imageUrl: string;
+  cookingTime: string;
+  servings: number;
 }
 
 export class RecipeFetcher {
@@ -44,9 +46,9 @@ export class RecipeFetcher {
       const content = $('body').text().trim();
 
       // Clean up the content (remove excessive whitespace)
-      return { 
+      return {
         text: content.replace(/\s+/g, ' '),
-        imageUrl
+        imageUrl,
       };
     } catch (error) {
       console.error('Error fetching recipe content:', error);
@@ -71,6 +73,8 @@ export class RecipeFetcher {
 2. List of ingredients with quantities and units (convert all measurements to metric units: grams, milliliters, centimeters, Celsius)
 3. List of kitchen materials/tools needed
 4. Step-by-step instructions with references to which ingredients and materials are used in each step
+5. Total cooking time (including preparation)
+6. Number of servings or portions
 
 Format your response as a JSON object with the following keys:
 - title: string
@@ -78,6 +82,8 @@ Format your response as a JSON object with the following keys:
 - materials: array of objects with { id: string, name: string, description?: string }
 - steps: array of objects with { action: string, ingredients: string[], materials: string[] }
 - tags: array of strings (cuisine type, dish type, main ingredients, dietary preferences)
+- cookingTime: string (e.g., "30 minutes", "1 hour 15 minutes")
+- servings: number (e.g., 4, 6, 8)
 
 Important rules:
 1. Assign a unique identifier (id) to each ingredient and material (e.g., "ing1", "ing2", "mat1", "mat2")
@@ -89,6 +95,8 @@ Important rules:
 3. In the steps, reference ingredients and materials by their IDs
 4. If the same ingredient appears multiple times in different contexts, assign it a new ID each time
 5. Preserve the original language of the recipe - do not translate it
+6. For cooking time, use a standardized format (e.g., "30 minutes", "1 hour 30 minutes")
+7. For servings, provide a reasonable estimate if not explicitly stated
 
 Be accurate and comprehensive in your extraction. If certain information is clearly missing, provide empty arrays or reasonable defaults.`,
       },
@@ -119,6 +127,8 @@ Be accurate and comprehensive in your extraction. If certain information is clea
         steps: Array.isArray(result.steps) ? result.steps : [],
         tags: Array.isArray(result.tags) ? result.tags : [],
         imageUrl: imageUrl || '',
+        cookingTime: result.cookingTime || '',
+        servings: result.servings || 0,
       };
     } catch (error) {
       console.error('Error extracting recipe details with OpenAI:', error);
@@ -137,4 +147,4 @@ Be accurate and comprehensive in your extraction. If certain information is clea
     // Extract recipe details using OpenAI
     return await this.extractRecipeDetails(url, text, imageUrl);
   }
-} 
+}

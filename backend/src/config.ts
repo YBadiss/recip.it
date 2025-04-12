@@ -38,4 +38,4 @@ export class Config {
   static get OPENAI_MODEL(): string {
     return process.env.OPENAI_MODEL || 'gpt-4o';
   }
-} 
+}

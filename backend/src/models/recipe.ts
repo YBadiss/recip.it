@@ -31,4 +31,6 @@ export interface Recipe {
   updated_at?: string;
   tags?: string[];
   imageUrl?: string;
+  cookingTime?: string; // Total time to prepare and cook the recipe
+  servings?: number; // Number of people the recipe serves
 }

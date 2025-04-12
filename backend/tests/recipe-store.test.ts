@@ -46,7 +46,9 @@ describe('Recipe Store E2E Tests', () => {
           materials: ['mat2']
         }
       ],
-      tags: ['tag1', 'tag2']
+      tags: ['tag1', 'tag2'],
+      cookingTime: '30 minutes',
+      servings: 4
     };
     
     // Create the recipe
@@ -67,6 +69,8 @@ describe('Recipe Store E2E Tests', () => {
     expect(createdRecipe?.materials).toHaveLength(2);
     expect(createdRecipe?.steps).toHaveLength(2);
     expect(createdRecipe?.tags).toHaveLength(2);
+    expect(createdRecipe?.cookingTime).toBe('30 minutes');
+    expect(createdRecipe?.servings).toBe(4);
   });
   
   // Test searching for recipes

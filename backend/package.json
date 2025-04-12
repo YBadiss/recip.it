@@ -15,7 +15,8 @@
     "migrate": "ts-node src/scripts/run-migrations.ts",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:e2e": "jest --config jest.config.js --runInBand --testMatch=\"tests/**/*.e2e.test.[jt]s?(x)\""
+    "test:e2e": "jest --config jest.config.js --runInBand --testMatch=\"tests/**/*.e2e.test.[jt]s?(x)\"",
+    "db:recreate": "ts-node src/db/dropAndRecreate.ts"
   },
   "dependencies": {
     "@types/uuid": "^10.0.0",

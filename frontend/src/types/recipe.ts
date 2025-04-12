@@ -24,6 +24,8 @@ export interface Recipe {
   description?: string;
   imageUrl?: string;
   cookTime?: string;
+  cookingTime?: string;
+  servings?: number;
   ingredients?: Ingredient[];
   materials?: Material[];
   steps?: Step[];

@@ -24,10 +24,10 @@ describe('Recipe Fetcher Service E2E Tests', () => {
     
     // Verify content was fetched
     expect(content).toBeDefined();
-    expect(content.length).toBeGreaterThan(100);
+    expect(content.text.length).toBeGreaterThan(100);
     
     // Verify content contains expected recipe-related terms
-    expect(content).toContain('pancake');
+    expect(content.text).toContain('pancake');
   });
   
   // Skip the long-running extraction test by default
@@ -59,10 +59,14 @@ describe('Recipe Fetcher Service E2E Tests', () => {
       4. Pour 1/4 cup of batter onto the griddle for each pancake.
       5. Cook until bubbles form on the surface, then flip and cook until golden brown.
       6. Serve warm with maple syrup or toppings of your choice.
+      
+      Preparation time: 10 minutes
+      Cooking time: 15 minutes
+      Serves: 4 people
     `;
     
     // Extract recipe details
-    const extractedRecipe = await recipeFetcher.extractRecipeDetails(url, content);
+    const extractedRecipe = await recipeFetcher.extractRecipeDetails(url, content, '');
     
     // Verify extracted data structure
     expect(extractedRecipe).toBeDefined();
@@ -96,5 +100,11 @@ describe('Recipe Fetcher Service E2E Tests', () => {
     
     // Verify tags were assigned
     expect(extractedRecipe.tags.length).toBeGreaterThan(0);
+    
+    // Verify cooking time and servings were extracted
+    expect(extractedRecipe.cookingTime).toBeDefined();
+    expect(extractedRecipe.cookingTime).toContain('minute');
+    expect(extractedRecipe.servings).toBeDefined();
+    expect(extractedRecipe.servings).toBe(4);
   });
 }); 

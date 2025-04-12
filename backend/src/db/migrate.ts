@@ -6,15 +6,15 @@ import { Config } from '../config';
 // Initialize database
 export const initDatabase = (customDbPath?: string): Promise<void> => {
   const dbPath = customDbPath || Config.DB_PATH;
-  
+
   return new Promise((resolve, reject) => {
     // Create database directory if it doesn't exist
     const dir = path.dirname(dbPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    
-    const db = new sqlite3.Database(dbPath, (err) => {
+
+    const db = new sqlite3.Database(dbPath, err => {
       if (err) {
         reject(err);
         return;
@@ -26,7 +26,8 @@ export const initDatabase = (customDbPath?: string): Promise<void> => {
       // Create schema
       db.serialize(() => {
         // Create recipes table
-        db.run(`
+        db.run(
+          `
           CREATE TABLE IF NOT EXISTS recipes (
             id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
@@ -36,27 +37,33 @@ export const initDatabase = (customDbPath?: string): Promise<void> => {
             steps JSON NOT NULL,
             tags JSON NOT NULL,
             imageUrl TEXT,
+            cookingTime TEXT,
+            servings INTEGER,
             search_text TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )
-        `, (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          
-          // Create index on search_text for faster searching
-          db.run(`
-            CREATE INDEX IF NOT EXISTS idx_recipes_search_text ON recipes(search_text)
-          `, (err) => {
+        `,
+          err => {
             if (err) {
               reject(err);
               return;
             }
-            
-            // Create trigger to update search_text on insert
-            db.run(`
+
+            // Create index on search_text for faster searching
+            db.run(
+              `
+            CREATE INDEX IF NOT EXISTS idx_recipes_search_text ON recipes(search_text)
+          `,
+              err => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+
+                // Create trigger to update search_text on insert
+                db.run(
+                  `
               CREATE TRIGGER IF NOT EXISTS update_search_text_insert
               AFTER INSERT ON recipes
               FOR EACH ROW
@@ -67,18 +74,21 @@ export const initDatabase = (customDbPath?: string): Promise<void> => {
                   (SELECT group_concat(json_extract(value, '$.name'), ' ') FROM json_each(NEW.ingredients)) || ' ' ||
                   (SELECT group_concat(json_extract(value, '$.name'), ' ') FROM json_each(NEW.materials)) || ' ' ||
                   (SELECT group_concat(json_extract(value, '$.action'), ' ') FROM json_each(NEW.steps)) || ' ' ||
-                  (SELECT group_concat(value, ' ') FROM json_each(NEW.tags))
+                  (SELECT group_concat(value, ' ') FROM json_each(NEW.tags)) || ' ' ||
+                  NEW.cookingTime
                 )
                 WHERE id = NEW.id;
               END;
-            `, (err) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              
-              // Create trigger to update search_text on update
-              db.run(`
+            `,
+                  err => {
+                    if (err) {
+                      reject(err);
+                      return;
+                    }
+
+                    // Create trigger to update search_text on update
+                    db.run(
+                      `
                 CREATE TRIGGER IF NOT EXISTS update_search_text_update
                 AFTER UPDATE ON recipes
                 FOR EACH ROW
@@ -86,7 +96,8 @@ export const initDatabase = (customDbPath?: string): Promise<void> => {
                      NEW.ingredients != OLD.ingredients OR
                      NEW.materials != OLD.materials OR
                      NEW.steps != OLD.steps OR
-                     NEW.tags != OLD.tags
+                     NEW.tags != OLD.tags OR
+                     NEW.cookingTime != OLD.cookingTime
                 BEGIN
                   UPDATE recipes
                   SET search_text = (
@@ -94,20 +105,26 @@ export const initDatabase = (customDbPath?: string): Promise<void> => {
                     (SELECT group_concat(json_extract(value, '$.name'), ' ') FROM json_each(NEW.ingredients)) || ' ' ||
                     (SELECT group_concat(json_extract(value, '$.name'), ' ') FROM json_each(NEW.materials)) || ' ' ||
                     (SELECT group_concat(json_extract(value, '$.action'), ' ') FROM json_each(NEW.steps)) || ' ' ||
-                    (SELECT group_concat(value, ' ') FROM json_each(NEW.tags))
+                    (SELECT group_concat(value, ' ') FROM json_each(NEW.tags)) || ' ' ||
+                    NEW.cookingTime
                   )
                   WHERE id = NEW.id;
                 END;
-              `, (err) => {
-                if (err) {
-                  reject(err);
-                  return;
-                }
-                resolve();
-              });
-            });
-          });
-        });
+              `,
+                      err => {
+                        if (err) {
+                          reject(err);
+                          return;
+                        }
+                        resolve();
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
       });
     });
   });
@@ -122,7 +139,7 @@ export const getDatabase = (customDbPath?: string): sqlite3.Database => {
 // Close database connection
 export const closeDatabase = (db: sqlite3.Database): Promise<void> => {
   return new Promise((resolve, reject) => {
-    db.close((err) => {
+    db.close(err => {
       if (err) {
         reject(err);
         return;
@@ -130,4 +147,4 @@ export const closeDatabase = (db: sqlite3.Database): Promise<void> => {
       resolve();
     });
   });
-}; 
+};

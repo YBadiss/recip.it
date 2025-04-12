@@ -47,9 +47,11 @@ const recipeController = new RecipeController(recipeStore, recipeFetcher);
 const recipeRouter = createRecipeRouter(recipeController);
 
 // Middleware
-app.use(cors({
-  origin: Config.CORS_ORIGIN
-}));
+app.use(
+  cors({
+    origin: Config.CORS_ORIGIN,
+  })
+);
 app.use(express.json());
 
 // Routes
