@@ -48,6 +48,13 @@ const RecipeDetailPage: React.FC = () => {
     };
 
     fetchRecipe();
+
+    // Scroll to top when component mounts without animation
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant', // Use 'instant' to avoid visible scroll animation
+    });
   }, [id, navigate]);
 
   const handleToggleUserList = async () => {
@@ -111,7 +118,7 @@ const RecipeDetailPage: React.FC = () => {
       {/* Breadcrumb navigation */}
       <Breadcrumb className="mb-3">
         <Breadcrumb.Item linkAs={Link} linkProps={{ to: '/' }}>
-          My Recipes
+          Recipes
         </Breadcrumb.Item>
         <Breadcrumb.Item active>{recipe.title}</Breadcrumb.Item>
       </Breadcrumb>
