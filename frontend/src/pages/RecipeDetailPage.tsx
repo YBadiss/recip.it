@@ -199,9 +199,9 @@ const RecipeDetailPage: React.FC = () => {
                 recipe.ingredients.map(ingredient => (
                   <ListGroup.Item key={ingredient.id} className="ingredient-item">
                     <strong>{ingredient.name}</strong>
-                    {ingredient.quantity && ingredient.unit && (
+                    {ingredient.quantity && (
                       <span className="ms-2">
-                        {ingredient.quantity} {ingredient.unit}
+                        {ingredient.quantity}{ingredient.unit ? ` ${ingredient.unit}` : ''}
                       </span>
                     )}
                   </ListGroup.Item>
@@ -251,8 +251,8 @@ const RecipeDetailPage: React.FC = () => {
                         return ingredient ? (
                           <Badge className="me-1 mb-1 badge-ingredient" bg="none" pill>
                             {ingredient.name}{' '}
-                            {ingredient.quantity && ingredient.unit
-                              ? `- ${ingredient.quantity} ${ingredient.unit}`
+                            {ingredient.quantity
+                              ? `- ${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ''}`
                               : ''}
                           </Badge>
                         ) : null;

@@ -70,9 +70,9 @@ export class RecipeFetcher {
         content: `You are a recipe extraction expert. Extract the following from the recipe content:
 
 1. Title of the recipe
-2. List of ingredients with quantities and units (convert all measurements to metric units: grams, milliliters, centimeters, Celsius)
+2. List of ingredients with quantities and units. IMPORTANT: preserve amounts (e.g. for fruits/vegetables) while also providing metric conversions.
 3. List of kitchen materials/tools needed
-4. Step-by-step instructions with references to which ingredients and materials are used in each step
+4. Step-by-step instructions with references to which ingredients and materials are used in each step. Make sure to capture all important cooking details.
 5. Total cooking time (including preparation)
 6. Number of servings or portions
 
@@ -87,16 +87,22 @@ Format your response as a JSON object with the following keys:
 
 Important rules:
 1. Assign a unique identifier (id) to each ingredient and material (e.g., "ing1", "ing2", "mat1", "mat2")
-2. Convert all measurements to metric units:
+2. Convert all unit measurements to metric units:
    - Volume: milliliters (ml)
    - Weight: grams (g)
    - Length: centimeters (cm)
    - Temperature: Celsius (°C)
 3. In the steps, reference ingredients and materials by their IDs
-4. If the same ingredient appears multiple times in different contexts, assign it a new ID each time
-5. Preserve the original language of the recipe - do not translate it
-6. For cooking time, use a standardized format (e.g., "30 minutes", "1 hour 30 minutes")
-7. For servings, provide a reasonable estimate if not explicitly stated
+4. Preserve ALL important cooking details such as:
+   - Exact cooking times ("simmer for 7 minutes" not just "simmer")
+   - Cooking methods and techniques
+   - Temperature settings
+   - Visual cues ("until golden brown")
+   - Texture indicators ("until soft and translucent")
+5. If the same ingredient appears multiple times in different contexts, assign it a new ID each time
+6. Preserve the original language of the recipe - do not translate it
+7. For cooking time, use a standardized format (e.g., "30 minutes", "1 hour 30 minutes")
+8. For servings, provide a reasonable estimate if not explicitly stated
 
 Be accurate and comprehensive in your extraction. If certain information is clearly missing, provide empty arrays or reasonable defaults.`,
       },

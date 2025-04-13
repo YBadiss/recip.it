@@ -15,4 +15,4 @@ ssh root@167.71.143.97 "cd /var/www/recip.it/backend-${timestamp} && npm i --omi
 
 # Create a new symlink
 ssh root@167.71.143.97 "rm /var/www/recip.it/backend && ln -s /var/www/recip.it/backend-${timestamp} /var/www/recip.it/backend"
-ssh root@167.71.143.97 "pm2 restart recipi-backend && sleep 1 && pm2 logs recipi-backend"
+ssh root@167.71.143.97 "pm2 restart recipi-backend && sleep 1 && pm2 logs recipi-backend --nostream"
