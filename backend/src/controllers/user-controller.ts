@@ -51,7 +51,7 @@ export class UserController {
       }
 
       const token = this.authService.generateToken(fullUser);
-      this.setCookie(res, token);
+      this.setCookie(res, token, 24 * 60 * 60 * 1000);
 
       // Return user info and token
       res.status(201).json({
@@ -91,7 +91,7 @@ export class UserController {
 
       // Generate JWT token
       const token = this.authService.generateToken(user);
-      this.setCookie(res, token);
+      this.setCookie(res, token, 24 * 60 * 60 * 1000);
 
       // Send user info without password
       const sanitizedUser = this.authService.sanitizeUser(user);
@@ -106,7 +106,7 @@ export class UserController {
   async logout(req: Request, res: Response): Promise<void> {
     try {
       // Clear the cookie
-      res.clearCookie(Config.COOKIE_NAME);
+      this.setCookie(res, '', 0);
       res.status(200).json({ message: 'Logout successful' });
     } catch (error) {
       console.error('Logout error:', error);
@@ -176,13 +176,13 @@ export class UserController {
     }
   }
 
-  private setCookie(res: Response, token: string): void {
+  private setCookie(res: Response, token: string, maxAge: number): void {
     res.cookie(Config.COOKIE_NAME, token, {
       httpOnly: Config.IS_PRODUCTION,
       domain: Config.DOMAIN,
       secure: Config.IS_PRODUCTION,
       sameSite: Config.IS_PRODUCTION ? 'none' : 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge,
     });
   }
 }
