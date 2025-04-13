@@ -160,7 +160,7 @@ describe('Full Recipe Import Flow E2E Tests', () => {
 // Helper function to create a mock RecipeFetcher
 function createMockRecipeFetcher(): RecipeFetcher {
   // Create an instance of RecipeFetcher with empty OpenAI and axios objects
-  const mockFetcher = new RecipeFetcher({} as OpenAI, axios);
+  const mockFetcher = new RecipeFetcher({} as OpenAI);
   
   // Override the methods we want to mock
   mockFetcher.extractRecipeFromUrl = jest.fn(async () => ({

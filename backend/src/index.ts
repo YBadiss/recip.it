@@ -14,8 +14,8 @@ import { AuthService } from './services/auth-service';
 import { AuthMiddleware } from './middleware/auth-middleware';
 import { initDatabase, getDatabase } from './db/migrate';
 import OpenAI from 'openai';
-import axios from 'axios';
 import { Config } from './config';
+import { YouTubeContentFetcher, WebContentFetcher } from './services/content-fetcher';
 
 // Create Express app
 const app = express();
@@ -46,10 +46,14 @@ const openai = new OpenAI({
 // Get database connection
 const db = getDatabase(dbPath);
 
+// Import content fetchers
+const youtubeFetcher = new YouTubeContentFetcher();
+const webFetcher = new WebContentFetcher();
+
 // Set up dependency injection
 const recipeStore = new RecipeStore(db);
 const userStore = new UserStore(db);
-const recipeFetcher = new RecipeFetcher(openai, axios);
+const recipeFetcher = new RecipeFetcher(openai, [youtubeFetcher, webFetcher]);
 const authService = new AuthService();
 const authMiddleware = new AuthMiddleware(authService);
 const userController = new UserController(userStore, authService);
@@ -101,21 +105,6 @@ app.get('/', (req, res) => {
   res.json({
     status: 'ok',
     message: 'Recipe API is running',
-    endpoints: {
-      // Recipe endpoints
-      getRecipes: 'GET /recipes',
-      getRecipeById: 'GET /recipes/:id',
-      createRecipe: 'POST /recipes',
-      reimportRecipe: 'POST /recipes/:id/import',
-      updateRecipe: 'PUT /recipes/:id',
-      deleteRecipe: 'DELETE /recipes/:id',
-      // User endpoints
-      register: 'POST /users/register',
-      login: 'POST /users/login',
-      logout: 'POST /users/logout',
-      getProfile: 'GET /users/profile',
-      listUsers: 'GET /users/list (admin only)',
-    },
   });
 });
 

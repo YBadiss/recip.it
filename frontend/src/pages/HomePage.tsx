@@ -159,7 +159,10 @@ const HomePage: React.FC = () => {
           {/* Community Recipes Section */}
           {communityRecipes.length > 0 && (
             <div>
-              <h2 className="mb-4">Community Recipes</h2>
+              <h2 className="mb-4">
+                <i className="bi bi-globe text-primary me-2" style={{ fontSize: '1.75rem' }}></i>
+                Community Recipes
+              </h2>
               <Row xs={1} md={2} lg={3} className="g-4">
                 {communityRecipes.map(recipe => (
                   <Col key={recipe.id}>

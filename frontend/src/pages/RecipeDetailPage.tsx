@@ -1,15 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Badge,
-  ListGroup,
-  Alert,
-  Breadcrumb,
-} from 'react-bootstrap';
+import { Container, Row, Col, Card, Badge, ListGroup, Alert, Breadcrumb } from 'react-bootstrap';
 import { Recipe, Ingredient, Material } from '../types/recipe';
 import { recipeApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -188,9 +179,17 @@ const RecipeDetailPage: React.FC = () => {
                         rel="noopener noreferrer"
                         title={recipe.link}
                       >
-                        {recipe.link.length > 30
-                          ? `${recipe.link.substring(0, 30)}...`
-                          : recipe.link}
+                        {(() => {
+                          try {
+                            const url = new URL(recipe.link);
+                            return url.hostname;
+                          } catch (e) {
+                            // Fallback to simple truncation if URL parsing fails
+                            return recipe.link.length > 25
+                              ? `${recipe.link.substring(0, 25)}...`
+                              : recipe.link;
+                          }
+                        })()}
                       </a>
                     </div>
                   </div>

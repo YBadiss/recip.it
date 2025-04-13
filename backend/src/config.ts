@@ -47,6 +47,14 @@ export class Config {
     return process.env.OPENAI_MODEL || 'gpt-4o';
   }
 
+  static get SUPADATA_API_KEY(): string {
+    const key = process.env.SUPADATA_API_KEY;
+    if (!key) {
+      console.warn('SUPADATA_API_KEY is not set in environment variables');
+    }
+    return key || '';
+  }
+
   static get JWT_SECRET(): string {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
