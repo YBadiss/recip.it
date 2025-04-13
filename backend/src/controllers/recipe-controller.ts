@@ -193,11 +193,9 @@ export class RecipeController {
         return;
       }
 
-      // Check if user has access to this recipe
-      const hasAccess = await this.userStore.userHasRecipe(req.user.userId, id);
       // Get the existing recipe
       const existingRecipe = await this.recipeStore.getRecipeById(id);
-      if (!hasAccess || !existingRecipe) {
+      if (!existingRecipe) {
         res.status(404).json({ error: 'Recipe not found' });
         return;
       }
