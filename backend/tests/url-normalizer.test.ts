@@ -21,22 +21,13 @@ describe('URL Normalizer Utility Tests', () => {
   it('should remove tracking parameters from URLs', () => {
     const testUrls = [
       // Original URL, expected normalized URL
+      ['https://example.com/recipe?utm_source=google&utm_medium=cpc', 'https://example.com/recipe'],
       [
-        'https://example.com/recipe?utm_source=google&utm_medium=cpc', 
-        'https://example.com/recipe'
+        'https://example.com/recipe?id=123&utm_campaign=summer',
+        'https://example.com/recipe?id=123',
       ],
-      [
-        'https://example.com/recipe?id=123&utm_campaign=summer', 
-        'https://example.com/recipe?id=123'
-      ],
-      [
-        'https://example.com/recipe?fbclid=123&id=456', 
-        'https://example.com/recipe?id=456'
-      ],
-      [
-        'https://example.com/recipe?id=123&ref=homepage', 
-        'https://example.com/recipe?id=123'
-      ],
+      ['https://example.com/recipe?fbclid=123&id=456', 'https://example.com/recipe?id=456'],
+      ['https://example.com/recipe?id=123&ref=homepage', 'https://example.com/recipe?id=123'],
     ];
 
     testUrls.forEach(([input, expected]) => {
@@ -48,14 +39,8 @@ describe('URL Normalizer Utility Tests', () => {
   it('should remove hash fragments from URLs', () => {
     const testUrls = [
       // Original URL, expected normalized URL
-      [
-        'https://example.com/recipe#section1', 
-        'https://example.com/recipe'
-      ],
-      [
-        'https://example.com/recipe?id=123#comments', 
-        'https://example.com/recipe?id=123'
-      ],
+      ['https://example.com/recipe#section1', 'https://example.com/recipe'],
+      ['https://example.com/recipe?id=123#comments', 'https://example.com/recipe?id=123'],
     ];
 
     testUrls.forEach(([input, expected]) => {
@@ -74,16 +59,16 @@ describe('URL Normalizer Utility Tests', () => {
     const testUrls = [
       // Original URL, expected normalized URL
       [
-        'https://www.allrecipes.com/recipe/21014/good-old-fashioned-pancakes/?utm_source=email', 
-        'https://allrecipes.com/recipe/21014/good-old-fashioned-pancakes'
+        'https://www.allrecipes.com/recipe/21014/good-old-fashioned-pancakes/?utm_source=email',
+        'https://allrecipes.com/recipe/21014/good-old-fashioned-pancakes',
       ],
       [
-        'http://www.food.com/recipe/chocolate-cake-123?fbclid=abc123', 
-        'https://food.com/recipe/chocolate-cake-123'
+        'http://www.food.com/recipe/chocolate-cake-123?fbclid=abc123',
+        'https://food.com/recipe/chocolate-cake-123',
       ],
       [
-        'https://www.epicurious.com/recipes/food/views/simple-pasta?ref=rss', 
-        'https://epicurious.com/recipes/food/views/simple-pasta'
+        'https://www.epicurious.com/recipes/food/views/simple-pasta?ref=rss',
+        'https://epicurious.com/recipes/food/views/simple-pasta',
       ],
     ];
 
@@ -91,4 +76,4 @@ describe('URL Normalizer Utility Tests', () => {
       expect(normalizeUrl(input)).toBe(expected);
     });
   });
-}); 
+});

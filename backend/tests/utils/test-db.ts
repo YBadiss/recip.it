@@ -16,14 +16,14 @@ export class TestDatabase {
     // Use OS temp directory for better isolation
     const tempDir = os.tmpdir();
     const testDbDir = path.join(tempDir, 'recip-it-tests');
-    
+
     // Ensure test directory exists
     if (!fs.existsSync(testDbDir)) {
       fs.mkdirSync(testDbDir, { recursive: true });
     }
-    
+
     this.dbPath = path.join(testDbDir, `test-${dbId}.db`);
-    
+
     // Delete the file if it already exists (ensuring a clean state)
     if (fs.existsSync(this.dbPath)) {
       fs.unlinkSync(this.dbPath);
@@ -36,10 +36,10 @@ export class TestDatabase {
     if (fs.existsSync(this.dbPath)) {
       fs.unlinkSync(this.dbPath);
     }
-    
+
     return new Promise((resolve, reject) => {
       // Create a completely new database connection
-      this.db = new sqlite3.Database(this.dbPath, async (err) => {
+      this.db = new sqlite3.Database(this.dbPath, async err => {
         if (err) {
           reject(err);
           return;
@@ -95,4 +95,4 @@ export class TestDatabase {
       });
     });
   }
-} 
+}
