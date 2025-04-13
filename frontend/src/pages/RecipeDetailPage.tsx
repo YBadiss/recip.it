@@ -31,9 +31,14 @@ const RecipeDetailPage: React.FC = () => {
         setError(null);
         const data = await recipeApi.getById(id);
         setRecipe(data);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching recipe:', err);
-        // Check if it's a 404 error (axios already handles redirect to /404)
+        // Check if it's a 404 error specifically
+        if (err?.response?.status === 404) {
+          // Use navigate instead of window.location
+          navigate('/404', { replace: true });
+          return;
+        }
         // For other errors, just set the error message
         setError('Failed to load recipe. It may have been deleted or is unavailable.');
       } finally {
@@ -42,7 +47,7 @@ const RecipeDetailPage: React.FC = () => {
     };
 
     fetchRecipe();
-  }, [id]);
+  }, [id, navigate]);
 
   const handleDelete = async () => {
     if (!id || !recipe) return;

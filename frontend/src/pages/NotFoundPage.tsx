@@ -1,8 +1,16 @@
 import React from 'react';
 import { Container, Card, Button, Image } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const NotFoundPage: React.FC = () => {
+  const navigate = useNavigate();
+
+  // Function to go back to previous page
+  const handleGoBack = () => {
+    // This will go back in the history stack, preserving auth state
+    navigate(-1);
+  };
+
   return (
     <Container className="py-5 text-center">
       <Card className="border-0 shadow-sm p-4">
@@ -18,9 +26,14 @@ const NotFoundPage: React.FC = () => {
             Don't worry, we all get lost sometimes. The recipe you're looking for might be taking a
             break.
           </p>
-          <Link to="/">
-            <Button variant="success">Return to Your Recipes</Button>
-          </Link>
+          <div className="d-flex justify-content-center gap-3">
+            <Link to="/">
+              <Button variant="success">Return to Your Recipes</Button>
+            </Link>
+            <Button variant="outline-secondary" onClick={handleGoBack}>
+              Go Back
+            </Button>
+          </div>
         </Card.Body>
       </Card>
     </Container>

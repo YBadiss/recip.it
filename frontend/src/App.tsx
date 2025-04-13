@@ -21,17 +21,15 @@ function App() {
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/404" element={<NotFoundPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/recipes/:id" element={<RecipeDetailPage />} />
               <Route path="/import" element={<ImportRecipePage />} />
+              <Route path="/404" element={<NotFoundPage />} />
+              <Route path="*" element={<Navigate to="/404" replace />} />
             </Route>
-
-            {/* Catch-all route */}
-            <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
         </Container>
         <Footer />

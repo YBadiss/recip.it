@@ -25,15 +25,16 @@ api.interceptors.request.use(
   error => Promise.reject(error)
 );
 
-// Add response interceptor to handle errors
+// Add response interceptor to handle errors, but don't redirect to 404
+// Let the components handle specific status codes
 api.interceptors.response.use(
   response => response,
   error => {
-    // Handle 404 errors
-    if (error.response && error.response.status === 404) {
-      // Redirect to NotFoundPage
-      window.location.href = '/404';
-      return new Promise(() => {}); // This prevents further error handling
+    // Log the error but don't redirect
+    if (error.response) {
+      console.error(`API Error: ${error.response.status} - ${error.response.statusText}`);
+    } else {
+      console.error('API Error:', error.message);
     }
     return Promise.reject(error);
   }
@@ -60,8 +61,17 @@ export const authApi = {
 
   // Get current user profile
   getCurrentUser: async (): Promise<User> => {
-    const response = await api.get<UserResponse>('/users/profile');
-    return response.data.user;
+    try {
+      const response = await api.get<UserResponse>('/users/profile');
+      return response.data.user;
+    } catch (error: any) {
+      // For unauthorized errors, just handle gracefully without logging
+      if (error?.response?.status === 401) {
+        throw error;
+      }
+      console.error('Error fetching user profile:', error);
+      throw error;
+    }
   },
 };
 
