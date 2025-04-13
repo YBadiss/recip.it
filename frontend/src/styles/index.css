@@ -446,3 +446,40 @@ a:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Favorite star icon */
+.favorite-star {
+  font-size: 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bi-star-fill.favorite-star {
+  color: #ffc107;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.2));
+}
+
+.bi-star.favorite-star {
+  color: #6c757d;
+}
+
+.favorite-star:hover {
+  transform: scale(1.1);
+}
+
+/* Hover effect for empty star */
+.bi-star.favorite-star:hover {
+  color: #ffc107;
+  opacity: 0.6;
+}
+
+/* Recipe section headings */
+.mb-4 + h2 {
+  position: relative;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+h2:not(:first-child) {
+  margin-top: 2.5rem;
+}

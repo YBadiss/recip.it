@@ -47,7 +47,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       <InputGroup>
         <Form.Control
           type="text"
-          placeholder="Search my recipes..."
+          placeholder="Search recipes..."
           value={query}
           onChange={handleInputChange}
           aria-label="Search recipes"

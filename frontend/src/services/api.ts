@@ -114,9 +114,15 @@ export const recipeApi = {
     return response.data;
   },
 
-  // Delete a recipe
-  delete: async (id: string): Promise<void> => {
-    await api.post(`/recipes/${id}/remove`); // Updated to use POST /recipes/:id/remove
+  // Add recipe to user's list
+  addToUserList: async (recipeUrl: string): Promise<Recipe> => {
+    const response = await api.post<Recipe>('/recipes', { link: recipeUrl });
+    return response.data;
+  },
+
+  // Remove recipe from user's list
+  removeFromUserList: async (id: string): Promise<void> => {
+    await api.post(`/recipes/${id}/remove`);
   },
 };
 

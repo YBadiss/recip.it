@@ -98,16 +98,16 @@ const ImportRecipeCard: React.FC<ImportRecipeCardProps> = ({ popIntensity = 'med
             left: 0,
             right: 0,
             bottom: 0,
-            zIndex: 1
+            zIndex: 1,
           }}
         >
-          <div 
+          <div
             className="rounded-circle d-flex justify-content-center align-items-center"
-            style={{ 
-              width: '60px', 
-              height: '60px', 
+            style={{
+              width: '60px',
+              height: '60px',
               backgroundColor: 'var(--secondary-color)',
-              color: 'white'
+              color: 'white',
             }}
           >
             <i className="bi bi-plus-lg" style={{ fontSize: '1.75rem' }}></i>
@@ -122,4 +122,4 @@ const ImportRecipeCard: React.FC<ImportRecipeCardProps> = ({ popIntensity = 'med
   );
 };
 
-export default ImportRecipeCard; 
+export default ImportRecipeCard;

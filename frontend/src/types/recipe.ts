@@ -32,6 +32,7 @@ export interface Recipe {
   created_at?: string;
   updated_at?: string;
   tags?: string[];
+  inUserList?: boolean;
 }
 
 export interface RecipeImport {

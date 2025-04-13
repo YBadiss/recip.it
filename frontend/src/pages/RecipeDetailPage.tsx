@@ -14,6 +14,7 @@ import {
 import { Recipe, Ingredient, Material } from '../types/recipe';
 import { recipeApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { toast } from 'react-toastify';
 
 const RecipeDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,15 +50,26 @@ const RecipeDetailPage: React.FC = () => {
     fetchRecipe();
   }, [id, navigate]);
 
-  const handleDelete = async () => {
+  const handleToggleUserList = async () => {
     if (!id || !recipe) return;
 
     try {
-      await recipeApi.delete(id);
-      navigate('/');
+      if (recipe.inUserList) {
+        // Remove from user list
+        await recipeApi.removeFromUserList(id);
+        toast.success('Removed from your list');
+      } else {
+        // Add to user list
+        await recipeApi.addToUserList(recipe.link);
+        toast.success('Added to your list');
+      }
+
+      // Refresh the recipe data
+      const updatedRecipe = await recipeApi.getById(id);
+      setRecipe(updatedRecipe);
     } catch (err) {
-      console.error('Error deleting recipe:', err);
-      setError('Failed to remove recipe. Please try again.');
+      console.error('Error updating recipe in user list:', err);
+      toast.error('Failed to update your list. Please try again.');
     }
   };
 
@@ -107,9 +119,12 @@ const RecipeDetailPage: React.FC = () => {
       <div className="d-flex justify-content-between align-items-start mb-2">
         <h1>{recipe.title}</h1>
         <div>
-          <Button variant="outline-danger" onClick={handleDelete}>
-            Remove
-          </Button>
+          <i
+            className={`bi ${recipe.inUserList ? 'bi-star-fill' : 'bi-star'} favorite-star`}
+            onClick={handleToggleUserList}
+            role="button"
+            aria-label={recipe.inUserList ? 'Remove from your list' : 'Add to your list'}
+          ></i>
         </div>
       </div>
 
@@ -201,7 +216,8 @@ const RecipeDetailPage: React.FC = () => {
                     <strong>{ingredient.name}</strong>
                     {ingredient.quantity && (
                       <span className="ms-2">
-                        {ingredient.quantity}{ingredient.unit ? ` ${ingredient.unit}` : ''}
+                        {ingredient.quantity}
+                        {ingredient.unit ? ` ${ingredient.unit}` : ''}
                       </span>
                     )}
                   </ListGroup.Item>

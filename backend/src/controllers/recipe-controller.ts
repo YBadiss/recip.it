@@ -39,19 +39,16 @@ export class RecipeController {
       // Get the list of recipe IDs this user has access to
       const userRecipeIds = await this.userStore.getUserRecipes(req.user.userId);
 
-      if (userRecipeIds.length === 0) {
-        // User has no recipes yet
-        res.json([]);
-        return;
-      }
-
-      // Get recipes and filter based on user's access
+      // Get all recipes
       const allRecipes = await this.recipeStore.getAllRecipes(q as string | undefined);
-      const userRecipes = allRecipes.filter(
-        recipe => recipe.id && userRecipeIds.includes(recipe.id)
-      );
 
-      res.json(userRecipes);
+      // Add inUserList flag to each recipe
+      const recipesWithOwnershipFlag = allRecipes.map(recipe => ({
+        ...recipe,
+        inUserList: recipe.id ? userRecipeIds.includes(recipe.id) : false,
+      }));
+
+      res.json(recipesWithOwnershipFlag);
     } catch (error) {
       console.error('Error fetching recipes:', error);
       res.status(500).json({
@@ -76,15 +73,22 @@ export class RecipeController {
         return;
       }
 
-      // Check if user has access to this recipe
+      // Get the recipe
       const recipe = await this.recipeStore.getRecipeById(id);
-      const hasAccess = await this.userStore.userHasRecipe(req.user.userId, id);
-      if (!hasAccess || !recipe) {
+
+      if (!recipe) {
         res.status(404).json({ error: 'Recipe not found' });
         return;
       }
 
-      res.json(recipe);
+      // Check if user has this recipe in their list
+      const hasRecipe = await this.userStore.userHasRecipe(req.user.userId, id);
+
+      // Return the recipe with an inUserList flag
+      res.json({
+        ...recipe,
+        inUserList: hasRecipe,
+      });
     } catch (error) {
       console.error('Error fetching recipe:', error);
       res.status(500).json({
@@ -288,19 +292,16 @@ export class RecipeController {
       // Get the list of recipe IDs this user has access to
       const userRecipeIds = await this.userStore.getUserRecipes(req.user.userId);
 
-      if (userRecipeIds.length === 0) {
-        // User has no recipes yet
-        res.json([]);
-        return;
-      }
-
-      // Search recipes and filter based on user's access
+      // Search all recipes
       const searchResults = await this.recipeStore.searchRecipes(q);
-      const userSearchResults = searchResults.filter(
-        recipe => recipe.id && userRecipeIds.includes(recipe.id)
-      );
 
-      res.json(userSearchResults);
+      // Add inUserList flag to each recipe
+      const resultsWithOwnershipFlag = searchResults.map(recipe => ({
+        ...recipe,
+        inUserList: recipe.id ? userRecipeIds.includes(recipe.id) : false,
+      }));
+
+      res.json(resultsWithOwnershipFlag);
     } catch (error) {
       console.error('Error searching recipes:', error);
       res.status(500).json({

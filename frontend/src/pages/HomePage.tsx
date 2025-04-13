@@ -68,6 +68,10 @@ const HomePage: React.FC = () => {
     setSearchQuery(query);
   };
 
+  // Separate recipes into "My Recipes" and "Community Recipes"
+  const myRecipes = filteredRecipes.filter(recipe => recipe.inUserList);
+  const communityRecipes = filteredRecipes.filter(recipe => !recipe.inUserList);
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -79,36 +83,93 @@ const HomePage: React.FC = () => {
       {error && <Alert variant="danger">{error}</Alert>}
 
       {filteredRecipes.length === 0 && !searchQuery ? (
-        <Row xs={1} md={2} lg={3} className="g-4">
-          <Col>
-            <ImportRecipeCard popIntensity="medium" />
-          </Col>
-        </Row>
+        <div>
+          <div className="mb-5">
+            <h2 className="mb-4">
+              <i className="bi bi-star-fill text-warning me-2" style={{ fontSize: '1.75rem' }}></i>
+              My Recipes
+            </h2>
+            <Row xs={1} md={2} lg={3} className="g-4">
+              <Col>
+                <ImportRecipeCard popIntensity="medium" />
+              </Col>
+            </Row>
+          </div>
+        </div>
       ) : filteredRecipes.length === 0 && searchQuery ? (
         <div>
           <Alert variant="info">
             {`No recipes found matching "${searchQuery}". Try a different search term.`}
           </Alert>
-          <Row xs={1} md={2} lg={3} className="g-4 mt-3">
-            <Col>
-              <ImportRecipeCard popIntensity="medium" />
-            </Col>
-          </Row>
+          <div className="mb-5">
+            <h2 className="mb-4">
+              <i className="bi bi-star-fill text-warning me-2" style={{ fontSize: '1.75rem' }}></i>
+              My Recipes
+            </h2>
+            <Row xs={1} md={2} lg={3} className="g-4">
+              <Col>
+                <ImportRecipeCard popIntensity="medium" />
+              </Col>
+            </Row>
+          </div>
         </div>
       ) : (
-        <Row xs={1} md={2} lg={3} className="g-4">
-          {/* Recipe Cards */}
-          {filteredRecipes.map(recipe => (
-            <Col key={recipe.id}>
-              <RecipeCard recipe={recipe} popIntensity="medium" />
-            </Col>
-          ))}
-          
-          {/* Import Recipe Card - always at the end of the list */}
-          <Col>
-            <ImportRecipeCard popIntensity="medium" />
-          </Col>
-        </Row>
+        <div>
+          {/* My Recipes Section */}
+          {myRecipes.length > 0 && (
+            <div className="mb-5">
+              <h2 className="mb-4">
+                <i
+                  className="bi bi-star-fill text-warning me-2"
+                  style={{ fontSize: '1.75rem' }}
+                ></i>
+                My Recipes
+              </h2>
+              <Row xs={1} md={2} lg={3} className="g-4">
+                {myRecipes.map(recipe => (
+                  <Col key={recipe.id}>
+                    <RecipeCard recipe={recipe} popIntensity="medium" />
+                  </Col>
+                ))}
+                <Col>
+                  <ImportRecipeCard popIntensity="medium" />
+                </Col>
+              </Row>
+            </div>
+          )}
+
+          {/* Show Import Card with My Recipes title if no recipes yet */}
+          {myRecipes.length === 0 && (
+            <div className="mb-5">
+              <h2 className="mb-4">
+                <i
+                  className="bi bi-star-fill text-warning me-2"
+                  style={{ fontSize: '1.75rem' }}
+                ></i>
+                My Recipes
+              </h2>
+              <Row xs={1} md={2} lg={3} className="g-4">
+                <Col>
+                  <ImportRecipeCard popIntensity="medium" />
+                </Col>
+              </Row>
+            </div>
+          )}
+
+          {/* Community Recipes Section */}
+          {communityRecipes.length > 0 && (
+            <div>
+              <h2 className="mb-4">Community Recipes</h2>
+              <Row xs={1} md={2} lg={3} className="g-4">
+                {communityRecipes.map(recipe => (
+                  <Col key={recipe.id}>
+                    <RecipeCard recipe={recipe} popIntensity="subtle" />
+                  </Col>
+                ))}
+              </Row>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

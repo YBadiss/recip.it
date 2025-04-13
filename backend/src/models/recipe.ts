@@ -33,4 +33,5 @@ export interface Recipe {
   imageUrl?: string;
   cookingTime?: string; // Total time to prepare and cook the recipe
   servings?: number; // Number of people the recipe serves
+  inUserList?: boolean; // Whether the recipe is in the user's collection
 }
