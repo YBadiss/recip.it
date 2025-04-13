@@ -9,31 +9,33 @@ const RegisterPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!username.trim() || !password.trim()) {
       setErrorMessage('Username and password are required');
       return;
     }
-    
+
     if (password !== confirmPassword) {
       setErrorMessage('Passwords do not match');
       return;
     }
-    
+
     setLoading(true);
     setErrorMessage(null);
-    
+
     try {
       await register(username, password);
       navigate('/');
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Registration failed. Please try again.');
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Registration failed. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -44,12 +46,12 @@ const RegisterPage: React.FC = () => {
       <Row className="justify-content-center mt-5">
         <Col md={6}>
           <Card>
-            <Card.Header as="h4" className="text-center">Register</Card.Header>
+            <Card.Header as="h4" className="text-center">
+              Register
+            </Card.Header>
             <Card.Body>
-              {errorMessage && (
-                <Alert variant="danger">{errorMessage}</Alert>
-              )}
-              
+              {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
+
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3" controlId="username">
                   <Form.Label>Username</Form.Label>
@@ -57,7 +59,7 @@ const RegisterPage: React.FC = () => {
                     type="text"
                     placeholder="Choose a username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={e => setUsername(e.target.value)}
                     disabled={loading}
                     required
                   />
@@ -69,7 +71,7 @@ const RegisterPage: React.FC = () => {
                     type="password"
                     placeholder="Choose a password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     disabled={loading}
                     required
                   />
@@ -81,18 +83,14 @@ const RegisterPage: React.FC = () => {
                     type="password"
                     placeholder="Confirm your password"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={e => setConfirmPassword(e.target.value)}
                     disabled={loading}
                     required
                   />
                 </Form.Group>
 
                 <div className="d-grid gap-2">
-                  <Button 
-                    variant="primary" 
-                    type="submit" 
-                    disabled={loading}
-                  >
+                  <Button variant="primary" type="submit" disabled={loading}>
                     {loading ? 'Creating Account...' : 'Register'}
                   </Button>
                 </div>
@@ -108,4 +106,4 @@ const RegisterPage: React.FC = () => {
   );
 };
 
-export default RegisterPage; 
+export default RegisterPage;

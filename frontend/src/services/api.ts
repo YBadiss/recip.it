@@ -13,25 +13,22 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for cookies
+  withCredentials: true, // Important for cookies - this ensures cookies are sent with requests
 });
 
-// Add request interceptor to include auth token
+// We don't need to manually add the token since it's in the cookie
+// Just keeping a simple interceptor for logging purposes
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  config => {
     return config;
   },
-  (error) => Promise.reject(error)
+  error => Promise.reject(error)
 );
 
 // Add response interceptor to handle errors
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  response => response,
+  error => {
     // Handle 404 errors
     if (error.response && error.response.status === 404) {
       // Redirect to NotFoundPage
@@ -47,25 +44,18 @@ export const authApi = {
   // Register a new user
   register: async (userData: RegisterData): Promise<User> => {
     const response = await api.post<UserResponse>('/users/register', userData);
-    // Store token if it's in the response headers
-    const token = response.headers['authorization']?.replace('Bearer ', '');
-    if (token) localStorage.setItem('token', token);
     return response.data.user;
   },
 
   // Login user
   login: async (credentials: LoginCredentials): Promise<User> => {
     const response = await api.post<UserResponse>('/users/login', credentials);
-    // Store token if it's in the response headers
-    const token = response.headers['authorization']?.replace('Bearer ', '');
-    if (token) localStorage.setItem('token', token);
     return response.data.user;
   },
 
   // Logout user
   logout: async (): Promise<void> => {
     await api.post('/users/logout');
-    localStorage.removeItem('token');
   },
 
   // Get current user profile

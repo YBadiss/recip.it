@@ -12,16 +12,16 @@ const Header: React.FC = () => {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
+
       // If scrolled down and not already hidden, hide header
       if (currentScrollY > lastScrollY && currentScrollY > 150 && !isHidden) {
         setIsHidden(true);
-      } 
+      }
       // If scrolled up even slightly and is hidden, show header
       else if (currentScrollY < lastScrollY - 10 && isHidden) {
         setIsHidden(false);
       }
-      
+
       setLastScrollY(currentScrollY);
     };
 
@@ -45,11 +45,11 @@ const Header: React.FC = () => {
       <Navbar expand="lg" variant="dark" className="py-0">
         <Container>
           <Navbar.Brand as={Link} to="/">
-            <Image 
-              src="/images/header.png" 
-              alt="Recip.it logo" 
-              className="header-logo me-2" 
-              width="40" 
+            <Image
+              src="/images/header.png"
+              alt="Recip.it logo"
+              className="header-logo me-2"
+              width="40"
               height="40"
             />
             <span className="brand-text">Recip.it</span>
@@ -61,19 +61,19 @@ const Header: React.FC = () => {
                 Your personal recipe collection app
               </span>
             </Nav>
-            
+
             {isAuthenticated ? (
               <>
-                <Button 
-                  variant="primary" 
-                  size="sm" 
-                  className="px-3 me-3 new-recipe-btn" 
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="px-3 me-3 new-recipe-btn"
                   onClick={() => navigate('/import')}
                 >
                   <span className="me-1">+</span> Import Recipe
                 </Button>
-                
-                <NavDropdown 
+
+                <NavDropdown
                   title={<i className="bi bi-person-circle fs-5"></i>}
                   id="user-dropdown"
                   align="end"
@@ -96,8 +96,12 @@ const Header: React.FC = () => {
               </>
             ) : (
               <Nav>
-                <Nav.Link as={Link} to="/login" className="me-2">Login</Nav.Link>
-                <Nav.Link as={Link} to="/register">Register</Nav.Link>
+                <Nav.Link as={Link} to="/login" className="me-2">
+                  Login
+                </Nav.Link>
+                <Nav.Link as={Link} to="/register">
+                  Register
+                </Nav.Link>
               </Nav>
             )}
           </Navbar.Collapse>

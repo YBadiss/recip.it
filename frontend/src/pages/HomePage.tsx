@@ -41,14 +41,15 @@ const HomePage: React.FC = () => {
       setFilteredRecipes(allRecipes);
       return;
     }
-    
+
     const lowercaseQuery = searchQuery.toLowerCase();
-    const filtered = allRecipes.filter(recipe => 
-      recipe.title.toLowerCase().includes(lowercaseQuery) ||
-      (recipe.description && recipe.description.toLowerCase().includes(lowercaseQuery)) ||
-      (recipe.tags && recipe.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery)))
+    const filtered = allRecipes.filter(
+      recipe =>
+        recipe.title.toLowerCase().includes(lowercaseQuery) ||
+        (recipe.description && recipe.description.toLowerCase().includes(lowercaseQuery)) ||
+        (recipe.tags && recipe.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery)))
     );
-    
+
     setFilteredRecipes(filtered);
   }, [searchQuery, allRecipes]);
 
@@ -72,11 +73,7 @@ const HomePage: React.FC = () => {
 
   return (
     <div>
-      <SearchBar 
-        onSearch={handleSearch} 
-        onSubmit={handleSearchSubmit}
-        initialValue={searchQuery} 
-      />
+      <SearchBar onSearch={handleSearch} onSubmit={handleSearchSubmit} initialValue={searchQuery} />
 
       {error && <Alert variant="danger">{error}</Alert>}
 
@@ -88,12 +85,9 @@ const HomePage: React.FC = () => {
         </Alert>
       ) : (
         <Row xs={1} md={2} lg={3} className="g-4">
-          {filteredRecipes.map((recipe) => (
+          {filteredRecipes.map(recipe => (
             <Col key={recipe.id}>
-              <RecipeCard 
-                recipe={recipe} 
-                popIntensity='medium'
-              />
+              <RecipeCard recipe={recipe} popIntensity="medium" />
             </Col>
           ))}
         </Row>

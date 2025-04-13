@@ -9,7 +9,10 @@ const ProtectedRoute: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Container className="d-flex justify-content-center align-items-center" style={{ height: '80vh' }}>
+      <Container
+        className="d-flex justify-content-center align-items-center"
+        style={{ height: '80vh' }}
+      >
         <Spinner animation="border" role="status">
           <span className="visually-hidden">Loading...</span>
         </Spinner>
@@ -26,4 +29,4 @@ const ProtectedRoute: React.FC = () => {
   return <Outlet />;
 };
 
-export default ProtectedRoute; 
+export default ProtectedRoute;

@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn src/index.ts",
     "lint": "eslint \"src/**/*.ts\"",
@@ -17,7 +17,8 @@
     "test:watch": "jest --watch",
     "test:e2e": "jest --config jest.config.js --runInBand --testMatch=\"tests/**/*.e2e.test.[jt]s?(x)\"",
     "db:recreate": "ts-node src/db/dropAndRecreate.ts",
-    "generate:token": "ts-node src/scripts/generate-admin-token.ts"
+    "generate:token": "ts-node src/scripts/generate-admin-token.ts",
+    "deploy": "bash src/scripts/deploy.sh"
   },
   "dependencies": {
     "@types/uuid": "^10.0.0",

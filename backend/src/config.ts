@@ -9,6 +9,14 @@ export class Config {
     return process.env.NODE_ENV || 'development';
   }
 
+  static get IS_PRODUCTION(): boolean {
+    return this.NODE_ENV === 'production';
+  }
+
+  static get DOMAIN(): string | undefined {
+    return process.env.DOMAIN || undefined;
+  }
+
   static get PORT(): number {
     return Number(process.env.PORT) || 3000;
   }

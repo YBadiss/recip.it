@@ -128,7 +128,9 @@ const RecipeDetailPage: React.FC = () => {
                 <i className="bi bi-clock fs-3 me-3 text-success"></i>
                 <div>
                   <div className="text-muted small">Cooking Time</div>
-                  <div className="fw-bold">{recipe.cookingTime || recipe.cookTime || 'Not specified'}</div>
+                  <div className="fw-bold">
+                    {recipe.cookingTime || recipe.cookTime || 'Not specified'}
+                  </div>
                 </div>
               </Card.Body>
             </Card>
@@ -139,7 +141,9 @@ const RecipeDetailPage: React.FC = () => {
                 <i className="bi bi-people fs-3 me-3 text-success"></i>
                 <div>
                   <div className="text-muted small">Servings</div>
-                  <div className="fw-bold">{recipe.servings ? `${recipe.servings} servings` : 'Not specified'}</div>
+                  <div className="fw-bold">
+                    {recipe.servings ? `${recipe.servings} servings` : 'Not specified'}
+                  </div>
                 </div>
               </Card.Body>
             </Card>
@@ -152,13 +156,15 @@ const RecipeDetailPage: React.FC = () => {
                   <div className="w-100">
                     <div className="text-muted small">Original Recipe</div>
                     <div className="fw-bold text-truncate">
-                      <a 
-                        href={recipe.link} 
-                        target="_blank" 
+                      <a
+                        href={recipe.link}
+                        target="_blank"
                         rel="noopener noreferrer"
                         title={recipe.link}
                       >
-                        {recipe.link.length > 30 ? `${recipe.link.substring(0, 30)}...` : recipe.link}
+                        {recipe.link.length > 30
+                          ? `${recipe.link.substring(0, 30)}...`
+                          : recipe.link}
                       </a>
                     </div>
                   </div>
@@ -171,10 +177,10 @@ const RecipeDetailPage: React.FC = () => {
 
       {/* Recipe image */}
       <div className="mb-4 recipe-detail-image-container">
-        <img 
-          src={getRecipeImage()} 
+        <img
+          src={getRecipeImage()}
           alt={recipe.title}
-          className="recipe-detail-image" 
+          className="recipe-detail-image"
           style={isPlaceholder ? { objectPosition: 'center center' } : undefined}
         />
       </div>
@@ -228,7 +234,9 @@ const RecipeDetailPage: React.FC = () => {
           {recipe.steps && recipe.steps.length > 0 ? (
             recipe.steps.map((step, index) => (
               <div key={index} className="step-item">
-                <p>{index + 1}. {step.action}</p>
+                <p>
+                  {index + 1}. {step.action}
+                </p>
 
                 {step.ingredients && step.ingredients.length > 0 && (
                   <div className="mb-2">
@@ -237,9 +245,10 @@ const RecipeDetailPage: React.FC = () => {
                         const ingredient = getIngredientById(ingredientId);
                         return ingredient ? (
                           <Badge className="me-1 mb-1 badge-ingredient" bg="none" pill>
-                            {ingredient.name} {ingredient.quantity && ingredient.unit
-                                ? `- ${ingredient.quantity} ${ingredient.unit}`
-                                : ''}
+                            {ingredient.name}{' '}
+                            {ingredient.quantity && ingredient.unit
+                              ? `- ${ingredient.quantity} ${ingredient.unit}`
+                              : ''}
                           </Badge>
                         ) : null;
                       })}
@@ -254,7 +263,8 @@ const RecipeDetailPage: React.FC = () => {
                         const material = getMaterialById(materialId);
                         return material ? (
                           <Badge className="me-1 mb-1 badge-material" bg="none" pill>
-                            {material.name} {material.description ? `- ${material.description}` : ''}
+                            {material.name}{' '}
+                            {material.description ? `- ${material.description}` : ''}
                           </Badge>
                         ) : null;
                       })}

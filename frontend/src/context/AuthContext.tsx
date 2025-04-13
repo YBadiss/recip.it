@@ -23,19 +23,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Check if user is already logged in on mount
   useEffect(() => {
     const checkAuthStatus = async () => {
-      // Check if token exists in localStorage
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setState({
-          ...defaultAuthState,
-          isLoading: false,
-        });
-        return;
-      }
-
       try {
         const user = await authApi.getCurrentUser();
-        
+
         // Ensure we have a valid user object
         if (user && user.id) {
           setState({
@@ -45,9 +35,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             error: null,
           });
         } else {
-          // If we got a response but no valid user, clean up and set not authenticated
+          // If we got a response but no valid user, set not authenticated
           console.error('No valid user data returned from profile endpoint');
-          localStorage.removeItem('token');
           setState({
             ...defaultAuthState,
             isLoading: false,
@@ -55,8 +44,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (error) {
         console.error('Error checking auth status:', error);
-        // On error, clear token and set not authenticated
-        localStorage.removeItem('token');
+        // On error, set not authenticated
         setState({
           ...defaultAuthState,
           isLoading: false,
@@ -71,7 +59,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setState({ ...state, isLoading: true, error: null });
     try {
       const user = await authApi.login({ username, password });
-      
+
       // Verify we have a valid user object
       if (user && user.id) {
         setState({
@@ -97,7 +85,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setState({ ...state, isLoading: true, error: null });
     try {
       const user = await authApi.register({ username, password });
-      
+
       // Verify we have a valid user object
       if (user && user.id) {
         setState({
@@ -129,7 +117,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
     } catch (error) {
       // Even if logout fails on server, clear local state
-      localStorage.removeItem('token');
       setState({
         ...defaultAuthState,
         isLoading: false,
@@ -158,4 +145,4 @@ export const useAuth = (): AuthContextType => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}; 
+};

@@ -22,7 +22,7 @@ const popEffects = {
     },
     image: {
       transform: 'scale(1.02)',
-    }
+    },
   },
   // Default effect (medium pop)
   medium: {
@@ -35,7 +35,7 @@ const popEffects = {
     },
     image: {
       transform: 'scale(1.05)',
-    }
+    },
   },
   // Intense effect (more pop)
   intense: {
@@ -48,28 +48,26 @@ const popEffects = {
     },
     image: {
       transform: 'scale(1.1)',
-    }
-  }
+    },
+  },
 };
 
 // Base styles
 const cardStyle = {
-  transition: 'transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border 0.2s ease',
+  transition:
+    'transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border 0.2s ease',
   cursor: 'pointer',
   backgroundColor: '#ffffff',
   borderColor: 'rgba(0, 0, 0, 0.125)',
 };
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ 
-  recipe,
-  popIntensity = 'medium'
-}) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, popIntensity = 'medium' }) => {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = React.useState(false);
-  
+
   // Get the appropriate pop effect based on intensity
   const popEffect = popEffects[popIntensity];
-  
+
   // Function to get a default image if recipe doesn't have one
   const getRecipeImage = () => {
     return recipe.imageUrl || '/images/recipe-placeholder.png';
@@ -83,24 +81,24 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   };
 
   return (
-    <Card 
-      className="recipe-card h-100 shadow-sm clickable-card" 
+    <Card
+      className="recipe-card h-100 shadow-sm clickable-card"
       onClick={handleCardClick}
       style={{
         ...cardStyle,
-        ...(isHovered ? popEffect.card : {})
+        ...(isHovered ? popEffect.card : {}),
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="recipe-image-container">
-        <img 
-          src={getRecipeImage()} 
-          className="recipe-image" 
+        <img
+          src={getRecipeImage()}
+          className="recipe-image"
           alt={recipe.title}
           style={{
             ...(isHovered ? popEffect.image : {}),
-            ...(isPlaceholder ? { objectPosition: 'center bottom' } : {})
+            ...(isPlaceholder ? { objectPosition: 'center bottom' } : {}),
           }}
         />
       </div>

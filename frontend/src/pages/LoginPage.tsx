@@ -8,25 +8,25 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Get the redirect path from location state or default to home
   const from = (location.state as any)?.from?.pathname || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!username.trim() || !password.trim()) {
       setErrorMessage('Username and password are required');
       return;
     }
-    
+
     setLoading(true);
     setErrorMessage(null);
-    
+
     try {
       await login(username, password);
       navigate(from, { replace: true });
@@ -42,12 +42,12 @@ const LoginPage: React.FC = () => {
       <Row className="justify-content-center mt-5">
         <Col md={6}>
           <Card>
-            <Card.Header as="h4" className="text-center">Login</Card.Header>
+            <Card.Header as="h4" className="text-center">
+              Login
+            </Card.Header>
             <Card.Body>
-              {errorMessage && (
-                <Alert variant="danger">{errorMessage}</Alert>
-              )}
-              
+              {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
+
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3" controlId="username">
                   <Form.Label>Username</Form.Label>
@@ -55,7 +55,7 @@ const LoginPage: React.FC = () => {
                     type="text"
                     placeholder="Enter username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={e => setUsername(e.target.value)}
                     disabled={loading}
                     required
                   />
@@ -67,18 +67,14 @@ const LoginPage: React.FC = () => {
                     type="password"
                     placeholder="Password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     disabled={loading}
                     required
                   />
                 </Form.Group>
 
                 <div className="d-grid gap-2">
-                  <Button 
-                    variant="primary" 
-                    type="submit" 
-                    disabled={loading}
-                  >
+                  <Button variant="primary" type="submit" disabled={loading}>
                     {loading ? 'Logging in...' : 'Login'}
                   </Button>
                 </div>
@@ -94,4 +90,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage; 
+export default LoginPage;

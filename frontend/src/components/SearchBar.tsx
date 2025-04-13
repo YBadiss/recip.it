@@ -8,14 +8,14 @@ interface SearchBarProps {
   debounceTime?: number;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ 
-  onSearch, 
+const SearchBar: React.FC<SearchBarProps> = ({
+  onSearch,
   onSubmit,
-  initialValue = '', 
-  debounceTime = 50 
+  initialValue = '',
+  debounceTime = 50,
 }) => {
   const [query, setQuery] = useState(initialValue);
-  
+
   const debouncedSearch = useCallback(
     debounce((searchQuery: string) => {
       onSearch(searchQuery);
@@ -58,26 +58,23 @@ const SearchBar: React.FC<SearchBarProps> = ({
 };
 
 // Debounce utility function
-const debounce = <F extends (...args: any[]) => any>(
-  func: F,
-  wait: number
-) => {
+const debounce = <F extends (...args: any[]) => any>(func: F, wait: number) => {
   let timeout: ReturnType<typeof setTimeout> | null = null;
-  
+
   const debounced = (...args: Parameters<F>) => {
     if (timeout !== null) {
       clearTimeout(timeout);
     }
     timeout = setTimeout(() => func(...args), wait);
   };
-  
+
   debounced.cancel = () => {
     if (timeout !== null) {
       clearTimeout(timeout);
       timeout = null;
     }
   };
-  
+
   return debounced as F & { cancel: () => void };
 };
 

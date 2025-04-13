@@ -66,18 +66,16 @@ const ImportRecipePage: React.FC = () => {
         </Breadcrumb.Item>
         <Breadcrumb.Item active>Import Recipe</Breadcrumb.Item>
       </Breadcrumb>
-      
+
       <h1 className="mb-4">Import Recipe</h1>
 
       <Card>
         <Card.Body>
           <Card.Text>
-            Enter the URL of a recipe you&apos;d like to import. We&apos;ll extract the ingredients, steps,
-            and other details automatically.
+            Enter the URL of a recipe you&apos;d like to import. We&apos;ll extract the ingredients,
+            steps, and other details automatically.
           </Card.Text>
-          <Card.Text>
-            Make sure the URL links directly to the recipe page.
-          </Card.Text>
+          <Card.Text>Make sure the URL links directly to the recipe page.</Card.Text>
 
           {error && <Alert variant="danger">{error}</Alert>}
 

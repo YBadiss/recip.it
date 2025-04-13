@@ -179,8 +179,9 @@ export class UserController {
   private setCookie(res: Response, token: string): void {
     res.cookie(Config.COOKIE_NAME, token, {
       httpOnly: true,
-      secure: Config.NODE_ENV === 'production',
-      sameSite: 'strict',
+      domain: Config.DOMAIN,
+      secure: Config.IS_PRODUCTION,
+      sameSite: 'none',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
   }

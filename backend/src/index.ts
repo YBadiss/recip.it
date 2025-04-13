@@ -60,8 +60,33 @@ const userRouter = createUserRouter(userController, authMiddleware);
 // Middleware
 app.use(
   cors({
-    origin: Config.CORS_ORIGIN,
+    origin: function (origin, callback) {
+      const allowedOrigins = Config.CORS_ORIGIN;
+
+      // Allow requests with no origin (like mobile apps, curl requests, etc.)
+      if (!origin) return callback(null, true);
+
+      // If wildcard is set, allow all origins but make sure credentials work properly
+      if (allowedOrigins === '*') {
+        // For wildcard origins with credentials: true, we need to specify the exact origin
+        return callback(null, origin);
+      }
+
+      // Check if the origin is in the allowed origins list
+      if (typeof allowedOrigins === 'string') {
+        return callback(null, allowedOrigins === origin ? origin : false);
+      }
+
+      // Check if the origin is in the array of allowed origins
+      if (Array.isArray(allowedOrigins) && allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, origin);
+      }
+
+      return callback(new Error('Not allowed by CORS'), false);
+    },
     credentials: true, // Allow cookies
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(express.json());
