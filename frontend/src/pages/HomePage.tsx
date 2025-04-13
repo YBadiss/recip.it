@@ -5,6 +5,7 @@ import { Recipe } from '../types/recipe';
 import { recipeApi } from '../services/api';
 import SearchBar from '../components/SearchBar';
 import RecipeCard from '../components/RecipeCard';
+import ImportRecipeCard from '../components/ImportRecipeCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const HomePage: React.FC = () => {
@@ -77,19 +78,36 @@ const HomePage: React.FC = () => {
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      {filteredRecipes.length === 0 ? (
-        <Alert variant="info">
-          {searchQuery
-            ? `No recipes found matching "${searchQuery}". Try a different search term.`
-            : 'No recipes found. Click "Import Recipe" to add your first recipe!'}
-        </Alert>
+      {filteredRecipes.length === 0 && !searchQuery ? (
+        <Row xs={1} md={2} lg={3} className="g-4">
+          <Col>
+            <ImportRecipeCard popIntensity="medium" />
+          </Col>
+        </Row>
+      ) : filteredRecipes.length === 0 && searchQuery ? (
+        <div>
+          <Alert variant="info">
+            {`No recipes found matching "${searchQuery}". Try a different search term.`}
+          </Alert>
+          <Row xs={1} md={2} lg={3} className="g-4 mt-3">
+            <Col>
+              <ImportRecipeCard popIntensity="medium" />
+            </Col>
+          </Row>
+        </div>
       ) : (
         <Row xs={1} md={2} lg={3} className="g-4">
+          {/* Recipe Cards */}
           {filteredRecipes.map(recipe => (
             <Col key={recipe.id}>
               <RecipeCard recipe={recipe} popIntensity="medium" />
             </Col>
           ))}
+          
+          {/* Import Recipe Card - always at the end of the list */}
+          <Col>
+            <ImportRecipeCard popIntensity="medium" />
+          </Col>
         </Row>
       )}
     </div>
