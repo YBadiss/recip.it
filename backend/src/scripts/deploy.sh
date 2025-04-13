@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Build the project
 npm run build

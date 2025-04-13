@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Build the project
 VITE_API_URL=https://api.recipit.me npm run build
