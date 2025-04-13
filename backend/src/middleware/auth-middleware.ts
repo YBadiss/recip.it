@@ -24,6 +24,31 @@ export class AuthMiddleware {
 
   // Middleware to verify JWT token from headers or cookies
   authenticate = (req: Request, res: Response, next: NextFunction): void => {
+    const user = this.getUser(req);
+
+    if (!user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    // Attach user info to request
+    req.user = user;
+    next();
+  };
+
+  tryAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
+    const user = this.getUser(req);
+
+    if (user) {
+      // Attach user info to request
+      req.user = user;
+    }
+    next();
+  };
+
+  private getUser = (
+    req: Request
+  ): { userId: string; username: string; authorizedEndpoints: string[] } | null => {
     let token: string | undefined;
 
     // Check authorization header
@@ -38,19 +63,16 @@ export class AuthMiddleware {
     }
 
     if (!token) {
-      res.status(401).json({ error: 'Authentication required' });
-      return;
+      return null;
     }
 
     const decoded = this.authService.verifyToken(token);
     if (!decoded) {
-      res.status(401).json({ error: 'Invalid token' });
-      return;
+      return null;
     }
 
     // Attach user info to request
-    req.user = decoded;
-    next();
+    return decoded;
   };
 
   // Middleware to check if user has permission to access the endpoint

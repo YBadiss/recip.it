@@ -1,17 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Badge, ListGroup, Alert, Breadcrumb } from 'react-bootstrap';
 import { Recipe, Ingredient, Material } from '../types/recipe';
 import { recipeApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { toast } from 'react-toastify';
+import { useAuth } from '../context/AuthContext';
+
+// Define a proper error type
+interface ApiError {
+  response?: {
+    status: number;
+  };
+  message: string;
+}
 
 const RecipeDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, redirectToLogin } = useAuth();
+
+  // Check if there's a pending action to perform
+  const pendingAction = searchParams.get('action');
 
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -22,10 +37,11 @@ const RecipeDetailPage: React.FC = () => {
         setError(null);
         const data = await recipeApi.getById(id);
         setRecipe(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching recipe:', err);
         // Check if it's a 404 error specifically
-        if (err?.response?.status === 404) {
+        const apiError = err as ApiError;
+        if (apiError?.response?.status === 404) {
           // Use navigate instead of window.location
           navigate('/404', { replace: true });
           return;
@@ -47,8 +63,51 @@ const RecipeDetailPage: React.FC = () => {
     });
   }, [id, navigate]);
 
+  // Effect to handle pending actions after login
+  useEffect(() => {
+    const performPendingAction = async () => {
+      // Only proceed if we have a recipe, are authenticated, and have a pending toggle action
+      if (recipe && id && isAuthenticated && pendingAction === 'toggle-list') {
+        // Clear the pending action parameter
+        searchParams.delete('action');
+        setSearchParams(searchParams, { replace: true });
+
+        try {
+          // Determine action based on current state
+          if (recipe.inUserList) {
+            await recipeApi.removeFromUserList(id);
+            toast.success('Removed from your list');
+          } else {
+            await recipeApi.addToUserList(recipe.link);
+            toast.success('Added to your list');
+          }
+
+          // Refresh recipe data to update UI
+          const updatedRecipe = await recipeApi.getById(id);
+          setRecipe(updatedRecipe);
+        } catch (err) {
+          console.error('Error performing pending action:', err);
+          toast.error('Failed to update your list. Please try again.');
+        }
+      }
+    };
+
+    performPendingAction();
+  }, [recipe, id, isAuthenticated, pendingAction, searchParams, setSearchParams]);
+
   const handleToggleUserList = async () => {
     if (!id || !recipe) return;
+
+    // Check if user is authenticated first
+    if (!isAuthenticated) {
+      // Add a query param to indicate we want to toggle the list after login
+      searchParams.set('action', 'toggle-list');
+      navigate(`${location.pathname}?${searchParams.toString()}`);
+
+      // Redirect to login with current path and query for return after login
+      redirectToLogin(`${location.pathname}?${searchParams.toString()}`);
+      return;
+    }
 
     try {
       if (recipe.inUserList) {

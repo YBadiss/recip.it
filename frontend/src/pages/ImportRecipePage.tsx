@@ -1,15 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Card, Form, Button, Alert, Breadcrumb } from 'react-bootstrap';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { recipeApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const ImportRecipePage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const { isAuthenticated, redirectToLogin } = useAuth();
+
+  // Check authentication on mount
+  useEffect(() => {
+    // If not authenticated, redirect to login
+    if (!isAuthenticated) {
+      redirectToLogin(location.pathname);
+    }
+  }, [isAuthenticated, redirectToLogin, location.pathname]);
 
   const validateUrl = (value: string): boolean => {
     if (!value) {
@@ -31,6 +42,12 @@ const ImportRecipePage: React.FC = () => {
     e.preventDefault();
 
     if (!validateUrl(url)) {
+      return;
+    }
+
+    // Double-check authentication before import
+    if (!isAuthenticated) {
+      redirectToLogin(location.pathname);
       return;
     }
 
@@ -62,7 +79,7 @@ const ImportRecipePage: React.FC = () => {
       {/* Breadcrumb navigation */}
       <Breadcrumb className="mb-3">
         <Breadcrumb.Item linkAs={Link} linkProps={{ to: '/' }}>
-          My Recipes
+          Recipes
         </Breadcrumb.Item>
         <Breadcrumb.Item active>Import Recipe</Breadcrumb.Item>
       </Breadcrumb>

@@ -51,7 +51,7 @@ export class WebContentFetcher implements ContentFetcher {
     this.axios = axiosInstance || axios.create();
   }
 
-  canFetchContent(url: string): boolean {
+  canFetchContent(_url: string): boolean {
     // This is the default fetcher, it can handle anything that's not handled by specialized fetchers
     return true;
   }

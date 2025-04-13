@@ -1,20 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Button, Alert, Container, Row, Col, Card } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+// Type for location state
+interface LocationState {
+  from: {
+    pathname: string;
+  };
+}
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [redirectPath, setRedirectPath] = useState('/');
 
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Get the redirect path from location state or default to home
-  const from = (location.state as any)?.from?.pathname || '/';
+  useEffect(() => {
+    const state = location.state as LocationState | null;
+    if (state && state.from) {
+      // Extract the full path including any query parameters
+      const fromPath = state.from.pathname;
+      setRedirectPath(fromPath);
+    }
+  }, [location.state]);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, navigate, redirectPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +51,7 @@ const LoginPage: React.FC = () => {
 
     try {
       await login(username, password);
-      navigate(from, { replace: true });
+      // Navigation will happen in the effect hook when isAuthenticated changes
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Login failed. Please try again.');
     } finally {
@@ -81,7 +103,7 @@ const LoginPage: React.FC = () => {
               </Form>
             </Card.Body>
             <Card.Footer className="text-center">
-              Don't have an account? <Link to="/register">Register</Link>
+              Don&apos;t have an account? <Link to="/register">Register</Link>
             </Card.Footer>
           </Card>
         </Col>

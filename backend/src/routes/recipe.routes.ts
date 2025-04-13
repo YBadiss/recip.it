@@ -8,28 +8,34 @@ export const createRecipeRouter = (
 ): Router => {
   const router = Router();
 
-  // All recipe routes require authentication
-  router.use(authMiddleware.authenticate);
-
+  // Public routes
   // GET /recipes - Get all recipes with optional search
-  router.get('/', authMiddleware.authorize('GET:/recipes'), recipeController.getAllRecipes);
+  router.get('/', authMiddleware.tryAuthenticate, recipeController.getAllRecipes);
 
   // GET /recipes/:id - Get a specific recipe by ID
-  router.get('/:id', authMiddleware.authorize('GET:/recipes/:id'), recipeController.getRecipeById);
+  router.get('/:id', authMiddleware.tryAuthenticate, recipeController.getRecipeById);
 
+  // Protected routes
   // POST /recipes/:id/remove - Remove a specific recipe by ID from user's collection
   router.post(
     '/:id/remove',
+    authMiddleware.authenticate,
     authMiddleware.authorize('POST:/recipes/:id/remove'),
     recipeController.removeRecipe
   );
 
   // POST /recipes - Create a new recipe from a URL
-  router.post('/', authMiddleware.authorize('POST:/recipes'), recipeController.createRecipe);
+  router.post(
+    '/',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('POST:/recipes'),
+    recipeController.createRecipe
+  );
 
   // POST /recipes/:id/reimport - Re-import a recipe from its original URL
   router.post(
     '/:id/reimport',
+    authMiddleware.authenticate,
     authMiddleware.authorize('POST:/recipes/:id/reimport'),
     recipeController.reimportRecipe
   );

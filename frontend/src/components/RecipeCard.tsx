@@ -7,6 +7,7 @@ import './RecipeCard.css';
 interface RecipeCardProps {
   recipe: Recipe;
   popIntensity?: 'subtle' | 'medium' | 'intense';
+  onRecipeUpdate?: (updatedRecipe: Recipe) => void;
 }
 
 // Pop effect intensity presets
@@ -64,20 +65,26 @@ const cardStyle = {
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, popIntensity = 'medium' }) => {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = React.useState(false);
+  const [localRecipe, setLocalRecipe] = React.useState<Recipe>(recipe);
+
+  // Update local recipe state when prop changes
+  React.useEffect(() => {
+    setLocalRecipe(recipe);
+  }, [recipe]);
 
   // Get the appropriate pop effect based on intensity
   const popEffect = popEffects[popIntensity];
 
   // Function to get a default image if recipe doesn't have one
   const getRecipeImage = () => {
-    return recipe.imageUrl || '/images/recipe-placeholder.png';
+    return localRecipe.imageUrl || '/images/recipe-placeholder.png';
   };
 
   // Determine if we're using a placeholder image
-  const isPlaceholder = !recipe.imageUrl;
+  const isPlaceholder = !localRecipe.imageUrl;
 
   const handleCardClick = () => {
-    navigate(`/recipes/${recipe.id}`);
+    navigate(`/recipes/${localRecipe.id}`);
   };
 
   return (
@@ -95,7 +102,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, popIntensity = 'medium'
         <img
           src={getRecipeImage()}
           className="recipe-image"
-          alt={recipe.title}
+          alt={localRecipe.title}
           style={{
             ...(isHovered ? popEffect.image : {}),
             ...(isPlaceholder ? { objectPosition: 'center bottom' } : {}),
@@ -103,30 +110,30 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, popIntensity = 'medium'
         />
       </div>
       <Card.Body>
-        <Card.Title>{recipe.title}</Card.Title>
+        <Card.Title>{localRecipe.title}</Card.Title>
 
         <Row className="mb-3">
           <Col>
             <div className="d-flex align-items-center text-muted small">
               <i className="bi bi-clock me-1"></i>
-              <span>{recipe.cookingTime || recipe.cookTime || 'N/A'}</span>
+              <span>{localRecipe.cookingTime || localRecipe.cookTime || 'N/A'}</span>
 
               <span className="mx-2">•</span>
 
               <i className="bi bi-people me-1"></i>
-              <span>{recipe.servings ? `${recipe.servings} servings` : '-'}</span>
+              <span>{localRecipe.servings ? `${localRecipe.servings} servings` : '-'}</span>
 
               <span className="mx-2">•</span>
 
               <i className="bi bi-ui-checks me-1"></i>
-              <span>{recipe.steps?.length || 0} steps</span>
+              <span>{localRecipe.steps?.length || 0} steps</span>
             </div>
           </Col>
         </Row>
 
         <div className="mb-3">
-          {recipe.tags &&
-            recipe.tags.map((tag, index) => (
+          {localRecipe.tags &&
+            localRecipe.tags.map((tag, index) => (
               <Badge key={index} className="me-1 mb-1" bg="success" pill>
                 {tag}
               </Badge>

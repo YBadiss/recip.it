@@ -5,8 +5,6 @@ import { LoginCredentials, RegisterData, User, UserResponse } from '../types/use
 // Use environment variable with fallback
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-console.log('API URL:', API_URL); // For debugging
-
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
@@ -15,6 +13,14 @@ const api = axios.create({
   },
   withCredentials: true, // Important for cookies - this ensures cookies are sent with requests
 });
+
+// Store the redirect function - will be set by the auth service
+let authRedirectHandler: ((url?: string) => void) | null = null;
+
+// Function to set the redirect handler
+export const setAuthRedirectHandler = (handler: (url?: string) => void) => {
+  authRedirectHandler = handler;
+};
 
 // We don't need to manually add the token since it's in the cookie
 // Just keeping a simple interceptor for logging purposes
@@ -25,17 +31,45 @@ api.interceptors.request.use(
   error => Promise.reject(error)
 );
 
+// Define error interface
+interface ApiErrorResponse {
+  response?: {
+    status: number;
+    statusText: string;
+  };
+  message: string;
+  config?: {
+    url?: string;
+  };
+}
+
 // Add response interceptor to handle errors, but don't redirect to 404
 // Let the components handle specific status codes
 api.interceptors.response.use(
   response => response,
   error => {
-    // Log the error but don't redirect
-    if (error.response) {
+    // Extract URL path from error config
+    const apiError = error as ApiErrorResponse;
+    const url = apiError.config?.url || '';
+
+    // Check for 401 Unauthorized responses that are not from the profile endpoint
+    if (error.response && error.response.status === 401 && !url.includes('/users/profile')) {
+      console.error('Authentication required');
+
+      // If we have a redirect handler, use it
+      if (authRedirectHandler) {
+        // Get current path to redirect back after login
+        const currentPath = window.location.pathname;
+        authRedirectHandler(currentPath);
+      }
+    }
+    // Log other errors (except profile 401s, which are expected during auth checks)
+    else if (error.response && !(error.response.status === 401 && url.includes('/users/profile'))) {
       console.error(`API Error: ${error.response.status} - ${error.response.statusText}`);
-    } else {
+    } else if (!error.response) {
       console.error('API Error:', error.message);
     }
+
     return Promise.reject(error);
   }
 );
@@ -64,9 +98,10 @@ export const authApi = {
     try {
       const response = await api.get<UserResponse>('/users/profile');
       return response.data.user;
-    } catch (error: any) {
-      // For unauthorized errors, just handle gracefully without logging
-      if (error?.response?.status === 401) {
+    } catch (error: unknown) {
+      // For unauthorized errors, just handle gracefully without logging or redirecting
+      const apiError = error as ApiErrorResponse;
+      if (apiError?.response?.status === 401) {
         throw error;
       }
       console.error('Error fetching user profile:', error);

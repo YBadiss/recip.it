@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, redirectToLogin } = useAuth();
   const [isHidden, setIsHidden] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -33,10 +33,18 @@ const Header: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      // Logout function in AuthContext now handles the navigation to home page
       await logout();
-      navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
+    }
+  };
+
+  const handleImportClick = () => {
+    if (isAuthenticated) {
+      navigate('/import');
+    } else {
+      redirectToLogin('/import');
     }
   };
 
@@ -62,38 +70,36 @@ const Header: React.FC = () => {
               </span>
             </Nav>
 
-            {isAuthenticated ? (
-              <>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="px-3 me-3 new-recipe-btn"
-                  onClick={() => navigate('/import')}
-                >
-                  <span className="me-1">+</span> Import Recipe
-                </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              className="px-3 me-3 new-recipe-btn"
+              onClick={handleImportClick}
+            >
+              <span className="me-1">+</span> Import Recipe
+            </Button>
 
-                <NavDropdown
-                  title={<i className="bi bi-person-circle fs-5"></i>}
-                  id="user-dropdown"
-                  align="end"
-                >
-                  {user ? (
-                    <NavDropdown.Item disabled className="text-muted">
-                      {user.username}
-                    </NavDropdown.Item>
-                  ) : (
-                    <NavDropdown.Item disabled className="text-muted">
-                      Authenticated User
-                    </NavDropdown.Item>
-                  )}
-                  <NavDropdown.Divider />
-                  <NavDropdown.Item onClick={handleLogout}>
-                    <i className="bi bi-box-arrow-right me-2"></i>
-                    Logout
+            {isAuthenticated ? (
+              <NavDropdown
+                title={<i className="bi bi-person-circle fs-5"></i>}
+                id="user-dropdown"
+                align="end"
+              >
+                {user ? (
+                  <NavDropdown.Item disabled className="text-muted">
+                    {user.username}
                   </NavDropdown.Item>
-                </NavDropdown>
-              </>
+                ) : (
+                  <NavDropdown.Item disabled className="text-muted">
+                    Authenticated User
+                  </NavDropdown.Item>
+                )}
+                <NavDropdown.Divider />
+                <NavDropdown.Item onClick={handleLogout}>
+                  <i className="bi bi-box-arrow-right me-2"></i>
+                  Logout
+                </NavDropdown.Item>
+              </NavDropdown>
             ) : (
               <Nav>
                 <Nav.Link as={Link} to="/login" className="me-2">

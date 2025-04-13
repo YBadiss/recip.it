@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './RecipeCard.css';
 
 interface ImportRecipeCardProps {
@@ -60,13 +61,19 @@ const cardStyle = {
 
 const ImportRecipeCard: React.FC<ImportRecipeCardProps> = ({ popIntensity = 'medium' }) => {
   const navigate = useNavigate();
+  const { isAuthenticated, redirectToLogin } = useAuth();
   const [isHovered, setIsHovered] = React.useState(false);
 
   // Get the appropriate pop effect based on intensity
   const popEffect = popEffects[popIntensity];
 
   const handleCardClick = () => {
-    navigate('/import');
+    if (isAuthenticated) {
+      navigate('/import');
+    } else {
+      // Pass the destination path directly to ensure proper redirection
+      redirectToLogin('/import');
+    }
   };
 
   return (

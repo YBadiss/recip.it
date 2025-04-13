@@ -21,10 +21,10 @@ const NotFoundPage: React.FC = () => {
             className="img-fluid mb-4"
             style={{ maxHeight: '300px' }}
           />
-          <h2 className="mb-3 text-primary">Oops! It seems you've wandered off the path</h2>
+          <h2 className="mb-3 text-primary">Oops! It seems you&apos;ve wandered off the path</h2>
           <p className="text-muted mb-4">
-            Don't worry, we all get lost sometimes. The recipe you're looking for might be taking a
-            break.
+            Don&apos;t worry, we all get lost sometimes. The recipe you&apos;re looking for might be
+            taking a break.
           </p>
           <div className="d-flex justify-content-center gap-3">
             <Link to="/">

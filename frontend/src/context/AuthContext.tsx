@@ -1,11 +1,20 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthState } from '../types/user';
-import { authApi } from '../services/api';
+import { authApi, setAuthRedirectHandler } from '../services/api';
 
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  redirectToLogin: (returnPath?: string) => void;
 }
 
 const defaultAuthState: AuthState = {
@@ -19,6 +28,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AuthState>(defaultAuthState);
+  const navigate = useNavigate();
+
+  // Function to redirect to login page with return path - wrapped in useCallback
+  const redirectToLogin = useCallback(
+    (returnPath?: string) => {
+      // If no path is provided, use current location including search params
+      const path = returnPath || window.location.pathname + window.location.search;
+      // Make sure we're using the correct state structure as expected by LoginPage
+      navigate('/login', { state: { from: { pathname: path } } });
+    },
+    [navigate]
+  );
+
+  // Set the auth redirect handler on mount
+  useEffect(() => {
+    setAuthRedirectHandler(redirectToLogin);
+  }, [redirectToLogin]);
 
   // Check if user is already logged in on mount
   useEffect(() => {
@@ -115,6 +141,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ...defaultAuthState,
         isLoading: false,
       });
+      // Redirect to home page after logout
+      navigate('/', { replace: true });
     } catch (error) {
       // Even if logout fails on server, clear local state
       setState({
@@ -122,6 +150,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isLoading: false,
       });
       console.error('Logout error:', error);
+      // Still redirect to home page on error
+      navigate('/', { replace: true });
     }
   };
 
@@ -132,6 +162,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         login,
         register,
         logout,
+        redirectToLogin,
       }}
     >
       {children}

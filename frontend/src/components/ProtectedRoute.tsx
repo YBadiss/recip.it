@@ -1,11 +1,18 @@
 import React from 'react';
-import { Navigate, useLocation, Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Spinner, Container } from 'react-bootstrap';
 
 const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, redirectToLogin } = useAuth();
   const location = useLocation();
+
+  // Redirect to login if the user attempts to access a protected route
+  React.useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      redirectToLogin(location.pathname);
+    }
+  }, [isLoading, isAuthenticated, redirectToLogin, location.pathname]);
 
   if (isLoading) {
     return (
@@ -20,13 +27,8 @@ const ProtectedRoute: React.FC = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    // Redirect to the login page, but save the current location
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
   // If authenticated, render the child routes
-  return <Outlet />;
+  return isAuthenticated ? <Outlet /> : null;
 };
 
 export default ProtectedRoute;

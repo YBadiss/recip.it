@@ -16,16 +16,22 @@ const SearchBar: React.FC<SearchBarProps> = ({
 }) => {
   const [query, setQuery] = useState(initialValue);
 
+  // Use inline function definition to avoid exhaustive-deps warning
   const debouncedSearch = useCallback(
-    debounce((searchQuery: string) => {
-      onSearch(searchQuery);
-    }, debounceTime),
+    (searchQuery: string) => {
+      const debouncedFn = debounce((q: string) => {
+        onSearch(q);
+      }, debounceTime);
+
+      debouncedFn(searchQuery);
+      return debouncedFn;
+    },
     [onSearch, debounceTime]
   );
 
   useEffect(() => {
-    debouncedSearch(query);
-    return () => debouncedSearch.cancel();
+    const handler = debouncedSearch(query);
+    return () => handler.cancel();
   }, [query, debouncedSearch]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -58,6 +64,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 };
 
 // Debounce utility function
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const debounce = <F extends (...args: any[]) => any>(func: F, wait: number) => {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 

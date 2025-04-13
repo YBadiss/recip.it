@@ -3,6 +3,7 @@ import { Row, Col, Alert } from 'react-bootstrap';
 import { useSearchParams } from 'react-router-dom';
 import { Recipe } from '../types/recipe';
 import { recipeApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import SearchBar from '../components/SearchBar';
 import RecipeCard from '../components/RecipeCard';
 import ImportRecipeCard from '../components/ImportRecipeCard';
@@ -15,6 +16,7 @@ const HomePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const { isAuthenticated } = useAuth();
 
   // Initial data fetch - load all recipes once
   useEffect(() => {
@@ -68,9 +70,22 @@ const HomePage: React.FC = () => {
     setSearchQuery(query);
   };
 
+  // Handle recipe updates from RecipeCard components
+  const handleRecipeUpdate = (updatedRecipe: Recipe) => {
+    // Update the recipe in both state arrays
+    const updateRecipeInArray = (recipes: Recipe[]) =>
+      recipes.map(r => (r.id === updatedRecipe.id ? updatedRecipe : r));
+
+    setAllRecipes(updateRecipeInArray(allRecipes));
+    setFilteredRecipes(updateRecipeInArray(filteredRecipes));
+  };
+
   // Separate recipes into "My Recipes" and "Community Recipes"
-  const myRecipes = filteredRecipes.filter(recipe => recipe.inUserList);
-  const communityRecipes = filteredRecipes.filter(recipe => !recipe.inUserList);
+  // Only filter by user list if authenticated
+  const myRecipes = isAuthenticated ? filteredRecipes.filter(recipe => recipe.inUserList) : [];
+  const communityRecipes = isAuthenticated
+    ? filteredRecipes.filter(recipe => !recipe.inUserList)
+    : filteredRecipes;
 
   if (loading) {
     return <LoadingSpinner />;
@@ -128,7 +143,11 @@ const HomePage: React.FC = () => {
               <Row xs={1} md={2} lg={3} className="g-4">
                 {myRecipes.map(recipe => (
                   <Col key={recipe.id}>
-                    <RecipeCard recipe={recipe} popIntensity="medium" />
+                    <RecipeCard
+                      recipe={recipe}
+                      popIntensity="medium"
+                      onRecipeUpdate={handleRecipeUpdate}
+                    />
                   </Col>
                 ))}
                 <Col>
@@ -166,7 +185,11 @@ const HomePage: React.FC = () => {
               <Row xs={1} md={2} lg={3} className="g-4">
                 {communityRecipes.map(recipe => (
                   <Col key={recipe.id}>
-                    <RecipeCard recipe={recipe} popIntensity="subtle" />
+                    <RecipeCard
+                      recipe={recipe}
+                      popIntensity="subtle"
+                      onRecipeUpdate={handleRecipeUpdate}
+                    />
                   </Col>
                 ))}
               </Row>

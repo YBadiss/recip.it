@@ -16,39 +16,28 @@ export class RecipeController {
     this.userStore = userStore;
   }
 
-  // Getter for recipeStore (for testing)
-  getRecipeStore(): RecipeStore {
-    return this.recipeStore;
-  }
-
-  // Getter for recipeFetcher (for testing)
-  getRecipeFetcher(): RecipeFetcher {
-    return this.recipeFetcher;
-  }
-
   // Get all recipes for the current user
   getAllRecipes = async (req: Request, res: Response): Promise<void> => {
     try {
-      if (!req.user || !req.user.userId) {
-        res.status(401).json({ error: 'Authentication required' });
-        return;
-      }
-
       const { q } = req.query;
-
-      // Get the list of recipe IDs this user has access to
-      const userRecipeIds = await this.userStore.getUserRecipes(req.user.userId);
 
       // Get all recipes
       const allRecipes = await this.recipeStore.getAllRecipes(q as string | undefined);
 
-      // Add inUserList flag to each recipe
-      const recipesWithOwnershipFlag = allRecipes.map(recipe => ({
-        ...recipe,
-        inUserList: recipe.id ? userRecipeIds.includes(recipe.id) : false,
-      }));
+      if (req.user?.userId) {
+        // Get the list of recipe IDs this user has access to
+        const userRecipeIds = await this.userStore.getUserRecipes(req.user.userId);
 
-      res.json(recipesWithOwnershipFlag);
+        // Add inUserList flag to each recipe
+        const recipesWithOwnershipFlag = allRecipes.map(recipe => ({
+          ...recipe,
+          inUserList: recipe.id ? userRecipeIds.includes(recipe.id) : false,
+        }));
+
+        res.json(recipesWithOwnershipFlag);
+      } else {
+        res.json(allRecipes);
+      }
     } catch (error) {
       console.error('Error fetching recipes:', error);
       res.status(500).json({
@@ -61,11 +50,6 @@ export class RecipeController {
   // Get a single recipe by ID
   getRecipeById = async (req: Request, res: Response): Promise<void> => {
     try {
-      if (!req.user || !req.user.userId) {
-        res.status(401).json({ error: 'Authentication required' });
-        return;
-      }
-
       const { id } = req.params;
 
       if (!id) {
@@ -82,7 +66,9 @@ export class RecipeController {
       }
 
       // Check if user has this recipe in their list
-      const hasRecipe = await this.userStore.userHasRecipe(req.user.userId, id);
+      const hasRecipe = req.user?.userId
+        ? await this.userStore.userHasRecipe(req.user.userId, id)
+        : false;
 
       // Return the recipe with an inUserList flag
       res.json({
@@ -101,11 +87,6 @@ export class RecipeController {
   // Create a new recipe
   createRecipe = async (req: Request, res: Response): Promise<void> => {
     try {
-      if (!req.user || !req.user.userId) {
-        res.status(401).json({ error: 'Authentication required' });
-        return;
-      }
-
       const recipeData = req.body;
 
       // Basic validation
@@ -158,7 +139,7 @@ export class RecipeController {
       }
 
       // Add the recipe to the user's collection
-      await this.userStore.addRecipeToUser(req.user.userId, recipeId);
+      await this.userStore.addRecipeToUser(req.user!.userId, recipeId);
 
       // Get the complete recipe to return
       const recipe = await this.recipeStore.getRecipeById(recipeId);
@@ -181,11 +162,6 @@ export class RecipeController {
   // Re-import a recipe from its original link
   reimportRecipe = async (req: Request, res: Response): Promise<void> => {
     try {
-      if (!req.user || !req.user.userId) {
-        res.status(401).json({ error: 'Authentication required' });
-        return;
-      }
-
       const { id } = req.params;
 
       if (!id) {
@@ -240,11 +216,6 @@ export class RecipeController {
   // Remove a recipe from user's collection
   removeRecipe = async (req: Request, res: Response): Promise<void> => {
     try {
-      if (!req.user || !req.user.userId) {
-        res.status(401).json({ error: 'Authentication required' });
-        return;
-      }
-
       const { id } = req.params;
 
       if (!id) {
@@ -253,57 +224,20 @@ export class RecipeController {
       }
 
       // Check if user has access to this recipe
-      const hasAccess = await this.userStore.userHasRecipe(req.user.userId, id);
+      const hasAccess = await this.userStore.userHasRecipe(req.user!.userId, id);
       if (!hasAccess) {
         res.status(404).json({ error: 'Recipe not found' });
         return;
       }
 
       // Remove recipe from user's collection
-      await this.userStore.removeRecipeFromUser(req.user.userId, id);
+      await this.userStore.removeRecipeFromUser(req.user!.userId, id);
 
       res.json({ message: 'Recipe removed from your collection' });
     } catch (error) {
       console.error('Error removing recipe:', error);
       res.status(500).json({
         error: 'Failed to remove recipe',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  };
-
-  // Search recipes for the current user
-  searchRecipes = async (req: Request, res: Response): Promise<void> => {
-    try {
-      if (!req.user || !req.user.userId) {
-        res.status(401).json({ error: 'Authentication required' });
-        return;
-      }
-
-      const { q } = req.query;
-
-      if (!q || typeof q !== 'string') {
-        res.status(400).json({ error: 'Search query is required' });
-        return;
-      }
-
-      // Get the list of recipe IDs this user has access to
-      const userRecipeIds = await this.userStore.getUserRecipes(req.user.userId);
-
-      // Search all recipes
-      const searchResults = await this.recipeStore.searchRecipes(q);
-
-      // Add inUserList flag to each recipe
-      const resultsWithOwnershipFlag = searchResults.map(recipe => ({
-        ...recipe,
-        inUserList: recipe.id ? userRecipeIds.includes(recipe.id) : false,
-      }));
-
-      res.json(resultsWithOwnershipFlag);
-    } catch (error) {
-      console.error('Error searching recipes:', error);
-      res.status(500).json({
-        error: 'Failed to search recipes',
         details: error instanceof Error ? error.message : 'Unknown error',
       });
     }
