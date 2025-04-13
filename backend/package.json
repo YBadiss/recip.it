@@ -1,6 +1,6 @@
 {
   "name": "recip.it",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "App to save recipes from the web in a common format",
   "main": "dist/index.js",
   "type": "commonjs",
