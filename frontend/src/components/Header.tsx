@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout, redirectToLogin } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const [isHidden, setIsHidden] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -40,12 +40,9 @@ const Header: React.FC = () => {
     }
   };
 
-  const handleImportClick = () => {
-    if (isAuthenticated) {
-      navigate('/import');
-    } else {
-      redirectToLogin('/import');
-    }
+  const handleAddClick = () => {
+    // Always navigate directly to the add recipe page without checking authentication
+    navigate('/add');
   };
 
   return (
@@ -74,9 +71,9 @@ const Header: React.FC = () => {
               variant="primary"
               size="sm"
               className="px-3 me-3 new-recipe-btn"
-              onClick={handleImportClick}
+              onClick={handleAddClick}
             >
-              <span className="me-1">+</span> Import Recipe
+              <span className="me-1">+</span> Add Recipe
             </Button>
 
             {isAuthenticated ? (
@@ -104,9 +101,6 @@ const Header: React.FC = () => {
               <Nav>
                 <Nav.Link as={Link} to="/login" className="me-2">
                   Login
-                </Nav.Link>
-                <Nav.Link as={Link} to="/register">
-                  Register
                 </Nav.Link>
               </Nav>
             )}

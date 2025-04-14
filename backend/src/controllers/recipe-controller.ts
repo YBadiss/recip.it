@@ -138,8 +138,10 @@ export class RecipeController {
         }
       }
 
-      // Add the recipe to the user's collection
-      await this.userStore.addRecipeToUser(req.user!.userId, recipeId);
+      if (req.user?.userId) {
+        // Add the recipe to the user's collection
+        await this.userStore.addRecipeToUser(req.user.userId, recipeId);
+      }
 
       // Get the complete recipe to return
       const recipe = await this.recipeStore.getRecipeById(recipeId);

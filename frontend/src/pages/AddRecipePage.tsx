@@ -1,26 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Container, Card, Form, Button, Alert, Breadcrumb } from 'react-bootstrap';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { recipeApi } from '../services/api';
-import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-const ImportRecipePage: React.FC = () => {
+const AddRecipePage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
-  const { isAuthenticated, redirectToLogin } = useAuth();
-
-  // Check authentication on mount
-  useEffect(() => {
-    // If not authenticated, redirect to login
-    if (!isAuthenticated) {
-      redirectToLogin(location.pathname);
-    }
-  }, [isAuthenticated, redirectToLogin, location.pathname]);
 
   const validateUrl = (value: string): boolean => {
     if (!value) {
@@ -45,12 +34,6 @@ const ImportRecipePage: React.FC = () => {
       return;
     }
 
-    // Double-check authentication before import
-    if (!isAuthenticated) {
-      redirectToLogin(location.pathname);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
@@ -63,15 +46,15 @@ const ImportRecipePage: React.FC = () => {
         setError('Failed to process recipe. Please try a different URL.');
       }
     } catch (err) {
-      console.error('Error importing recipe:', err);
-      setError('Failed to import recipe. The URL may not contain a valid recipe.');
+      console.error('Error adding recipe:', err);
+      setError('Failed to add recipe. The URL may not contain a valid recipe.');
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <LoadingSpinner message="Importing recipe from URL... This may take a moment." />;
+    return <LoadingSpinner message="Adding recipe from URL... This may take a moment." />;
   }
 
   return (
@@ -81,15 +64,15 @@ const ImportRecipePage: React.FC = () => {
         <Breadcrumb.Item linkAs={Link} linkProps={{ to: '/' }}>
           Recipes
         </Breadcrumb.Item>
-        <Breadcrumb.Item active>Import Recipe</Breadcrumb.Item>
+        <Breadcrumb.Item active>Add Recipe</Breadcrumb.Item>
       </Breadcrumb>
 
-      <h1 className="mb-4">Import Recipe</h1>
+      <h1 className="mb-4">Add New Recipe</h1>
 
       <Card>
         <Card.Body>
           <Card.Text>
-            Enter the URL of a recipe you&apos;d like to import. We&apos;ll extract the ingredients,
+            Enter the URL of a recipe you&apos;d like to add. We&apos;ll extract the ingredients,
             steps, and other details automatically.
           </Card.Text>
           <Card.Text>Make sure the URL links directly to the recipe page.</Card.Text>
@@ -110,7 +93,7 @@ const ImportRecipePage: React.FC = () => {
 
             <div className="d-grid">
               <Button variant="outline-primary" type="submit">
-                Import Recipe
+                Add Recipe
               </Button>
             </div>
           </Form>
@@ -120,4 +103,4 @@ const ImportRecipePage: React.FC = () => {
   );
 };
 
-export default ImportRecipePage;
+export default AddRecipePage;

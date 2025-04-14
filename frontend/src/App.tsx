@@ -4,7 +4,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import RecipeDetailPage from './pages/RecipeDetailPage';
-import ImportRecipePage from './pages/ImportRecipePage';
+import AddRecipePage from './pages/AddRecipePage';
 import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -26,10 +26,11 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/recipes/:id" element={<RecipeDetailPage />} />
             <Route path="/404" element={<NotFoundPage />} />
+            <Route path="/add" element={<AddRecipePage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/import" element={<ImportRecipePage />} />
+              {/* No more routes here that need protection */}
             </Route>
 
             {/* Fallback */}

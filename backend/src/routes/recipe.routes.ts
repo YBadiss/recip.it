@@ -15,6 +15,9 @@ export const createRecipeRouter = (
   // GET /recipes/:id - Get a specific recipe by ID
   router.get('/:id', authMiddleware.tryAuthenticate, recipeController.getRecipeById);
 
+  // POST /recipes - Create a new recipe from a URL
+  router.post('/', authMiddleware.tryAuthenticate, recipeController.createRecipe);
+
   // Protected routes
   // POST /recipes/:id/remove - Remove a specific recipe by ID from user's collection
   router.post(
@@ -22,14 +25,6 @@ export const createRecipeRouter = (
     authMiddleware.authenticate,
     authMiddleware.authorize('POST:/recipes/:id/remove'),
     recipeController.removeRecipe
-  );
-
-  // POST /recipes - Create a new recipe from a URL
-  router.post(
-    '/',
-    authMiddleware.authenticate,
-    authMiddleware.authorize('POST:/recipes'),
-    recipeController.createRecipe
   );
 
   // POST /recipes/:id/reimport - Re-import a recipe from its original URL

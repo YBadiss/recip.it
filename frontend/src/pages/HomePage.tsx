@@ -6,7 +6,7 @@ import { recipeApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import SearchBar from '../components/SearchBar';
 import RecipeCard from '../components/RecipeCard';
-import ImportRecipeCard from '../components/ImportRecipeCard';
+import AddRecipeCard from '../components/AddRecipeCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const HomePage: React.FC = () => {
@@ -97,106 +97,60 @@ const HomePage: React.FC = () => {
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      {filteredRecipes.length === 0 && !searchQuery ? (
-        <div>
-          <div className="mb-5">
-            <h2 className="mb-4">
-              <i className="bi bi-star-fill text-warning me-2" style={{ fontSize: '1.75rem' }}></i>
-              My Recipes
-            </h2>
-            <Row xs={1} md={2} lg={3} className="g-4">
-              <Col>
-                <ImportRecipeCard popIntensity="medium" />
-              </Col>
-            </Row>
-          </div>
-        </div>
-      ) : filteredRecipes.length === 0 && searchQuery ? (
-        <div>
+      <div>
+        {searchQuery && filteredRecipes.length === 0 && (
           <Alert variant="info">
             {`No recipes found matching "${searchQuery}". Try a different search term.`}
           </Alert>
+        )}
+
+        {isAuthenticated && (
           <div className="mb-5">
             <h2 className="mb-4">
               <i className="bi bi-star-fill text-warning me-2" style={{ fontSize: '1.75rem' }}></i>
               My Recipes
             </h2>
             <Row xs={1} md={2} lg={3} className="g-4">
+              {myRecipes.map(recipe => (
+                <Col key={recipe.id}>
+                  <RecipeCard
+                    recipe={recipe}
+                    popIntensity="medium"
+                    onRecipeUpdate={handleRecipeUpdate}
+                  />
+                </Col>
+              ))}
               <Col>
-                <ImportRecipeCard popIntensity="medium" />
+                <AddRecipeCard popIntensity="medium" />
               </Col>
             </Row>
           </div>
-        </div>
-      ) : (
-        <div>
-          {/* My Recipes Section */}
-          {myRecipes.length > 0 && (
-            <div className="mb-5">
-              <h2 className="mb-4">
-                <i
-                  className="bi bi-star-fill text-warning me-2"
-                  style={{ fontSize: '1.75rem' }}
-                ></i>
-                My Recipes
-              </h2>
-              <Row xs={1} md={2} lg={3} className="g-4">
-                {myRecipes.map(recipe => (
-                  <Col key={recipe.id}>
-                    <RecipeCard
-                      recipe={recipe}
-                      popIntensity="medium"
-                      onRecipeUpdate={handleRecipeUpdate}
-                    />
-                  </Col>
-                ))}
-                <Col>
-                  <ImportRecipeCard popIntensity="medium" />
-                </Col>
-              </Row>
-            </div>
-          )}
-
-          {/* Show Import Card with My Recipes title if no recipes yet */}
-          {myRecipes.length === 0 && (
-            <div className="mb-5">
-              <h2 className="mb-4">
-                <i
-                  className="bi bi-star-fill text-warning me-2"
-                  style={{ fontSize: '1.75rem' }}
-                ></i>
-                My Recipes
-              </h2>
-              <Row xs={1} md={2} lg={3} className="g-4">
-                <Col>
-                  <ImportRecipeCard popIntensity="medium" />
-                </Col>
-              </Row>
-            </div>
-          )}
-
-          {/* Community Recipes Section */}
+        )}
+        <div className="mb-5">
           {communityRecipes.length > 0 && (
-            <div>
-              <h2 className="mb-4">
-                <i className="bi bi-globe text-primary me-2" style={{ fontSize: '1.75rem' }}></i>
-                Community Recipes
-              </h2>
-              <Row xs={1} md={2} lg={3} className="g-4">
-                {communityRecipes.map(recipe => (
-                  <Col key={recipe.id}>
-                    <RecipeCard
-                      recipe={recipe}
-                      popIntensity="subtle"
-                      onRecipeUpdate={handleRecipeUpdate}
-                    />
-                  </Col>
-                ))}
-              </Row>
-            </div>
+            <h2 className="mb-4">
+              <i className="bi bi-globe text-primary me-2" style={{ fontSize: '1.75rem' }}></i>
+              Community Recipes
+            </h2>
           )}
+          <Row xs={1} md={2} lg={3} className="g-4">
+            {communityRecipes.map(recipe => (
+              <Col key={recipe.id}>
+                <RecipeCard
+                  recipe={recipe}
+                  popIntensity="subtle"
+                  onRecipeUpdate={handleRecipeUpdate}
+                />
+              </Col>
+            ))}
+            {!isAuthenticated && (
+              <Col>
+                <AddRecipeCard popIntensity="subtle" />
+              </Col>
+            )}
+          </Row>
         </div>
-      )}
+      </div>
     </div>
   );
 };
