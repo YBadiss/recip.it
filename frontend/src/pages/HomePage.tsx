@@ -7,12 +7,10 @@ import { useAuth } from '../context/AuthContext';
 import SearchBar from '../components/SearchBar';
 import RecipeCard from '../components/RecipeCard';
 import AddRecipeCard from '../components/AddRecipeCard';
-import LoadingSpinner from '../components/LoadingSpinner';
 
 const HomePage: React.FC = () => {
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -22,7 +20,6 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const fetchAllRecipes = async () => {
       try {
-        setLoading(true);
         setError(null);
         const data = await recipeApi.getAll();
         setAllRecipes(data);
@@ -30,8 +27,6 @@ const HomePage: React.FC = () => {
       } catch (err) {
         console.error('Error fetching recipes:', err);
         setError('Failed to load recipes. Please try again later.');
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -86,10 +81,6 @@ const HomePage: React.FC = () => {
   const communityRecipes = isAuthenticated
     ? filteredRecipes.filter(recipe => !recipe.inUserList)
     : filteredRecipes;
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <div>

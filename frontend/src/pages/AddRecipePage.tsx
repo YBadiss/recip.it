@@ -54,7 +54,7 @@ const AddRecipePage: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Adding recipe from URL... This may take a moment." />;
+    return <LoadingSpinner message="The Recipe Pear is gathering your ingredients..." />;
   }
 
   return (

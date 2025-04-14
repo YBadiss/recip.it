@@ -3,7 +3,6 @@ import { useParams, useNavigate, Link, useLocation, useSearchParams } from 'reac
 import { Container, Row, Col, Card, Badge, ListGroup, Alert, Breadcrumb } from 'react-bootstrap';
 import { Recipe, Ingredient, Material } from '../types/recipe';
 import { recipeApi } from '../services/api';
-import LoadingSpinner from '../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,7 +20,6 @@ const RecipeDetailPage: React.FC = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, redirectToLogin } = useAuth();
 
@@ -33,7 +31,6 @@ const RecipeDetailPage: React.FC = () => {
       if (!id) return;
 
       try {
-        setLoading(true);
         setError(null);
         const data = await recipeApi.getById(id);
         setRecipe(data);
@@ -48,8 +45,6 @@ const RecipeDetailPage: React.FC = () => {
         }
         // For other errors, just set the error message
         setError('Failed to load recipe. It may have been deleted or is unavailable.');
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -144,10 +139,6 @@ const RecipeDetailPage: React.FC = () => {
 
   // Determine if we're using a placeholder image
   const isPlaceholder = !recipe?.imageUrl;
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
 
   if (error || !recipe) {
     return (

@@ -7,7 +7,6 @@ const RegisterPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { register } = useAuth();
@@ -26,7 +25,6 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
-    setLoading(true);
     setErrorMessage(null);
 
     try {
@@ -36,8 +34,6 @@ const RegisterPage: React.FC = () => {
       setErrorMessage(
         error instanceof Error ? error.message : 'Registration failed. Please try again.'
       );
-    } finally {
-      setLoading(false);
     }
   };
 

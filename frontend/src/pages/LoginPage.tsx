@@ -13,7 +13,6 @@ interface LocationState {
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [redirectPath, setRedirectPath] = useState('/');
 
@@ -46,7 +45,6 @@ const LoginPage: React.FC = () => {
       return;
     }
 
-    setLoading(true);
     setErrorMessage(null);
 
     try {
@@ -54,8 +52,6 @@ const LoginPage: React.FC = () => {
       // Navigation will happen in the effect hook when isAuthenticated changes
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
