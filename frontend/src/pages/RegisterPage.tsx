@@ -9,7 +9,7 @@ const RegisterPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { register } = useAuth();
+  const { register, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,7 +56,7 @@ const RegisterPage: React.FC = () => {
                     placeholder="Choose a username"
                     value={username}
                     onChange={e => setUsername(e.target.value)}
-                    disabled={loading}
+                    disabled={isLoading}
                     required
                   />
                 </Form.Group>
@@ -68,7 +68,7 @@ const RegisterPage: React.FC = () => {
                     placeholder="Choose a password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    disabled={loading}
+                    disabled={isLoading}
                     required
                   />
                 </Form.Group>
@@ -80,14 +80,14 @@ const RegisterPage: React.FC = () => {
                     placeholder="Confirm your password"
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
-                    disabled={loading}
+                    disabled={isLoading}
                     required
                   />
                 </Form.Group>
 
                 <div className="d-grid gap-2">
-                  <Button variant="primary" type="submit" disabled={loading}>
-                    {loading ? 'Creating Account...' : 'Register'}
+                  <Button variant="primary" type="submit" disabled={isLoading}>
+                    {isLoading ? 'Creating Account...' : 'Register'}
                   </Button>
                 </div>
               </Form>

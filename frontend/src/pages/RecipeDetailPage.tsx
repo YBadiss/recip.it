@@ -20,6 +20,7 @@ const RecipeDetailPage: React.FC = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, redirectToLogin } = useAuth();
 
@@ -31,9 +32,11 @@ const RecipeDetailPage: React.FC = () => {
       if (!id) return;
 
       try {
+        setLoading(true);
         setError(null);
         const data = await recipeApi.getById(id);
         setRecipe(data);
+        setLoading(false);
       } catch (err: unknown) {
         console.error('Error fetching recipe:', err);
         // Check if it's a 404 error specifically
@@ -45,6 +48,7 @@ const RecipeDetailPage: React.FC = () => {
         }
         // For other errors, just set the error message
         setError('Failed to load recipe. It may have been deleted or is unavailable.');
+        setLoading(false);
       }
     };
 
@@ -139,6 +143,10 @@ const RecipeDetailPage: React.FC = () => {
 
   // Determine if we're using a placeholder image
   const isPlaceholder = !recipe?.imageUrl;
+
+  if (loading) {
+    return <div></div>;
+  }
 
   if (error || !recipe) {
     return (

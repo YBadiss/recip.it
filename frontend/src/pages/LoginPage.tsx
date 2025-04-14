@@ -16,7 +16,7 @@ const LoginPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [redirectPath, setRedirectPath] = useState('/');
 
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -74,7 +74,7 @@ const LoginPage: React.FC = () => {
                     placeholder="Enter username"
                     value={username}
                     onChange={e => setUsername(e.target.value)}
-                    disabled={loading}
+                    disabled={isLoading}
                     required
                   />
                 </Form.Group>
@@ -86,14 +86,14 @@ const LoginPage: React.FC = () => {
                     placeholder="Password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    disabled={loading}
+                    disabled={isLoading}
                     required
                   />
                 </Form.Group>
 
                 <div className="d-grid gap-2">
-                  <Button variant="primary" type="submit" disabled={loading}>
-                    {loading ? 'Logging in...' : 'Login'}
+                  <Button variant="primary" type="submit" disabled={isLoading}>
+                    {isLoading ? 'Logging in...' : 'Login'}
                   </Button>
                 </div>
               </Form>
