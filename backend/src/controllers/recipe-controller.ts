@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { RecipeStore } from '../models/recipe-store';
-import { Recipe } from '../models/recipe';
-import { RecipeFetcher } from '../services/recipe-fetcher';
+import { RecipeFetcher, ExtractedRecipe } from '../services/recipe-fetcher';
 import { normalizeUrl } from '../utils/url-normalizer';
 import { UserStore } from '../models/user-store';
+import * as crypto from 'crypto';
+import pdfParse from 'pdf-parse';
 
 export class RecipeController {
   private recipeStore: RecipeStore;
@@ -95,62 +96,17 @@ export class RecipeController {
         return;
       }
 
-      let recipeId = '';
-      let existingRecipe = null;
-
       // Normalize the URL to avoid duplicates
-      recipeData.link = normalizeUrl(recipeData.link);
+      const normalizedLink = normalizeUrl(recipeData.link);
 
-      // Check if recipe with this normalized link already exists
-      existingRecipe = await this.recipeStore.getRecipeByNormalizedLink(recipeData.link);
-
-      if (existingRecipe && existingRecipe.id) {
-        // Recipe already exists, add it to the user's collection
-        recipeId = existingRecipe.id;
-      } else {
-        // Recipe doesn't exist, extract details from URL
-        try {
-          const extractedRecipe = await this.recipeFetcher.extractRecipeFromUrl(recipeData.link);
-          recipeData.title = extractedRecipe.title;
-          recipeData.ingredients = extractedRecipe.ingredients;
-          recipeData.materials = extractedRecipe.materials;
-          recipeData.steps = extractedRecipe.steps;
-          recipeData.tags = extractedRecipe.tags;
-          recipeData.imageUrl = extractedRecipe.imageUrl;
-          recipeData.cookingTime = extractedRecipe.cookingTime;
-          recipeData.servings = extractedRecipe.servings;
-
-          // Ensure all required fields are present with valid defaults
-          recipeData.ingredients = recipeData.ingredients || [];
-          recipeData.materials = recipeData.materials || [];
-          recipeData.steps = recipeData.steps || [];
-          recipeData.tags = recipeData.tags || [];
-
-          // Create new recipe
-          recipeId = await this.recipeStore.createRecipe(recipeData);
-        } catch (extractError) {
-          console.error('Error extracting recipe from URL:', extractError);
-          res.status(400).json({
-            error: 'Failed to extract recipe details from URL',
-            details: extractError instanceof Error ? extractError.message : 'Unknown error',
-          });
-          return;
-        }
-      }
-
-      if (req.user?.userId) {
-        // Add the recipe to the user's collection
-        await this.userStore.addRecipeToUser(req.user.userId, recipeId);
-      }
-
-      // Get the complete recipe to return
-      const recipe = await this.recipeStore.getRecipeById(recipeId);
-
-      res.status(201).json({
-        ...recipe,
-        message: existingRecipe
-          ? 'Existing recipe added to your collection'
-          : 'Recipe created successfully',
+      // Process the recipe (shared functionality)
+      await this._processRecipe({
+        link: normalizedLink,
+        extractRecipe: async () => {
+          return await this.recipeFetcher.extractRecipeFromUrl(normalizedLink);
+        },
+        userId: req.user?.userId,
+        res,
       });
     } catch (error) {
       console.error('Error creating recipe:', error);
@@ -178,20 +134,26 @@ export class RecipeController {
         return;
       }
 
+      // Prevent reimporting file-based recipes
+      if (existingRecipe.link.startsWith('file://')) {
+        res.status(400).json({ error: 'Reimporting file-based recipes is not supported' });
+        return;
+      }
+
       try {
         // Extract recipe details from URL
         const extractedRecipe = await this.recipeFetcher.extractRecipeFromUrl(existingRecipe.link);
 
         // Update the recipe in the database
-        const recipeData: Partial<Recipe> = {
-          title: extractedRecipe.title,
-          ingredients: extractedRecipe.ingredients,
-          materials: extractedRecipe.materials,
-          steps: extractedRecipe.steps,
-          tags: extractedRecipe.tags,
-          imageUrl: extractedRecipe.imageUrl,
-          cookingTime: extractedRecipe.cookingTime,
-          servings: extractedRecipe.servings,
+        const recipeData = {
+          title: extractedRecipe.title || 'Untitled Recipe',
+          ingredients: extractedRecipe.ingredients || [],
+          materials: extractedRecipe.materials || [],
+          steps: extractedRecipe.steps || [],
+          tags: extractedRecipe.tags || [],
+          imageUrl: extractedRecipe.imageUrl || '',
+          cookingTime: extractedRecipe.cookingTime || '',
+          servings: extractedRecipe.servings || 0,
         };
 
         await this.recipeStore.updateRecipe(id, recipeData);
@@ -242,6 +204,165 @@ export class RecipeController {
         error: 'Failed to remove recipe',
         details: error instanceof Error ? error.message : 'Unknown error',
       });
+    }
+  };
+
+  // Upload a recipe from a file
+  uploadRecipe = async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ error: 'No file uploaded' });
+        return;
+      }
+
+      // Extract content based on file type
+      let fileContent: string;
+
+      if (req.file.mimetype === 'application/pdf') {
+        // Process PDF file
+        try {
+          const pdfData = await pdfParse(req.file.buffer);
+          fileContent = pdfData.text;
+
+          // If text is too short, the PDF might be image-based or empty
+          if (fileContent.length < 50) {
+            res.status(400).json({
+              error:
+                'Unable to extract sufficient text from PDF. The file may be image-based or empty.',
+            });
+            return;
+          }
+
+          console.log(`Extracted ${fileContent.length} characters from PDF`);
+        } catch (pdfError) {
+          console.error('Error extracting text from PDF:', pdfError);
+          res.status(400).json({
+            error: 'Failed to parse PDF file',
+            details: pdfError instanceof Error ? pdfError.message : 'Unknown error',
+          });
+          return;
+        }
+      } else if (req.file.mimetype === 'text/plain') {
+        // Process TXT file - no preprocessing needed
+        fileContent = req.file.buffer.toString('utf-8');
+
+        console.log(`Loaded ${fileContent.length} characters from TXT file`);
+      } else {
+        res.status(400).json({ error: 'Unsupported file type' });
+        return;
+      }
+
+      // Calculate MD5 hash of the file content
+      const md5Hash = crypto.createHash('md5').update(fileContent).digest('hex');
+
+      // Create the file URL
+      const fileUrl = `file://upload/${md5Hash}`;
+
+      // Process the recipe (shared functionality)
+      await this._processRecipe({
+        link: fileUrl,
+        extractRecipe: async () => {
+          // If content is too large, truncate it
+          const maxContentLength = 100000; // Adjust based on LLM context limits
+          const truncatedContent =
+            fileContent.length > maxContentLength
+              ? fileContent.substring(0, maxContentLength) + '\n[Content truncated due to length]'
+              : fileContent;
+
+          return await this.recipeFetcher.extractRecipeFromContent(
+            fileUrl,
+            truncatedContent,
+            '', // No image URL
+            `Uploaded ${req.file?.mimetype === 'application/pdf' ? 'PDF' : 'TXT'} recipe with MD5: ${md5Hash}`
+          );
+        },
+        userId: req.user?.userId,
+        res,
+      });
+    } catch (error) {
+      console.error('Error uploading recipe:', error);
+      res.status(500).json({
+        error: 'Failed to upload recipe',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  };
+
+  // Private helper method to process recipes (shared between create and upload)
+  private _processRecipe = async ({
+    link,
+    extractRecipe,
+    userId,
+    res,
+  }: {
+    link: string;
+    extractRecipe: () => Promise<ExtractedRecipe>;
+    userId?: string;
+    res: Response;
+  }): Promise<void> => {
+    let recipeId = '';
+    let existingRecipe = null;
+
+    // Check if recipe with this normalized link already exists
+    existingRecipe = await this.recipeStore.getRecipeByNormalizedLink(link);
+
+    if (existingRecipe && existingRecipe.id) {
+      // Recipe already exists, add it to the user's collection
+      recipeId = existingRecipe.id;
+
+      if (userId) {
+        await this.userStore.addRecipeToUser(userId, recipeId);
+      }
+
+      // Get the complete recipe to return
+      const recipe = await this.recipeStore.getRecipeById(recipeId);
+
+      res.status(200).json({
+        ...recipe,
+        message: 'Existing recipe added to your collection',
+        inUserList: !!userId,
+      });
+    } else {
+      // Recipe doesn't exist, extract details
+      try {
+        const extractedRecipe = await extractRecipe();
+
+        // Create recipe data
+        const recipeData = {
+          link,
+          title: extractedRecipe.title || 'Untitled Recipe',
+          ingredients: extractedRecipe.ingredients || [],
+          materials: extractedRecipe.materials || [],
+          steps: extractedRecipe.steps || [],
+          tags: extractedRecipe.tags || [],
+          imageUrl: extractedRecipe.imageUrl || '',
+          cookingTime: extractedRecipe.cookingTime || '',
+          servings: extractedRecipe.servings || 0,
+        };
+
+        // Create new recipe
+        recipeId = await this.recipeStore.createRecipe(recipeData);
+
+        if (userId) {
+          // Add the recipe to the user's collection
+          await this.userStore.addRecipeToUser(userId, recipeId);
+        }
+
+        // Get the complete recipe to return
+        const recipe = await this.recipeStore.getRecipeById(recipeId);
+
+        res.status(201).json({
+          ...recipe,
+          message: 'Recipe created successfully',
+          inUserList: !!userId,
+        });
+      } catch (extractError) {
+        console.error('Error extracting recipe:', extractError);
+        res.status(400).json({
+          error: 'Failed to extract recipe details',
+          details: extractError instanceof Error ? extractError.message : 'Unknown error',
+        });
+      }
     }
   };
 }

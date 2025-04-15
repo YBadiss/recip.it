@@ -137,6 +137,18 @@ export const recipeApi = {
     return response.data;
   },
 
+  // Import a new recipe from file upload
+  importFile: async (formData: FormData): Promise<Recipe> => {
+    // Create a custom config to set the correct content type for file uploads
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    };
+    const response = await api.post<Recipe>('/recipes/upload', formData, config);
+    return response.data;
+  },
+
   // Re-import a recipe from its original URL
   reimport: async (id: string): Promise<Recipe> => {
     const response = await api.post<Recipe>(`/recipes/${id}/import`);

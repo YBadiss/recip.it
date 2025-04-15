@@ -90,6 +90,13 @@ Important rules:
 7. If the same ingredient appears multiple times in different contexts, assign it a new ID each time
 8. For cooking time, use a standardized format (e.g., "30 minutes", "1 hour 30 minutes")
 9. For servings, provide a reasonable estimate if not explicitly stated.
+10. Split steps with too many actions into multiple smaller steps. Each step should focus on a single action or a small set of closely related actions.
+   For example, in this French recipe:
+   "Épluchez, lavez et séchez les pommes de terre puis coupez en rondelles fines. Pelez les gousses d'ail et émincez-les."
+   Should be split into:
+   "Épluchez, lavez et séchez les pommes de terre."
+   "Coupez les pommes de terre en rondelles fines."
+   "Pelez les gousses d'ail et émincez-les."
 
 ${
   isYoutubeContent
@@ -145,8 +152,24 @@ Be accurate and comprehensive in your extraction. If certain information is clea
     }
   }
 
+  // Function to extract recipe from content directly
+  async extractRecipeFromContent(
+    url: string,
+    content: string,
+    imageUrl: string = '',
+    context?: string
+  ): Promise<ExtractedRecipe> {
+    // Extract recipe details using OpenAI
+    return await this.extractRecipeDetails(url, content, imageUrl, context);
+  }
+
   // Function to extract recipe from URL
   async extractRecipeFromUrl(url: string): Promise<ExtractedRecipe> {
+    // Don't process file:// URLs from reimporting
+    if (url.startsWith('file://')) {
+      throw new Error('Reimporting file-based recipes is not supported');
+    }
+
     // Fetch content from the URL
     const { text, imageUrl, context } = await this.fetchRecipeContent(url);
 
