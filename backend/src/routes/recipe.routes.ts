@@ -98,5 +98,13 @@ export const createRecipeRouter = (
     recipeController.reimportRecipe
   );
 
+  // DELETE /recipes/:id - Completely delete a recipe from the database
+  router.delete(
+    '/:id',
+    authMiddleware.authenticate,
+    authMiddleware.authorize('DELETE:/recipes/:id'),
+    recipeController.deleteRecipe
+  );
+
   return router;
 };

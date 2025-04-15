@@ -12,6 +12,7 @@ import { UserStore } from './models/user-store';
 import { RecipeFetcher } from './services/recipe-fetcher';
 import { AuthService } from './services/auth-service';
 import { AuthMiddleware } from './middleware/auth-middleware';
+import { LoggingMiddleware } from './middleware/logging-middleware';
 import { initDatabase, getDatabase } from './db/migrate';
 import OpenAI from 'openai';
 import { Config } from './config';
@@ -56,6 +57,7 @@ const userStore = new UserStore(db);
 const recipeFetcher = new RecipeFetcher(openai, [youtubeFetcher, webFetcher]);
 const authService = new AuthService();
 const authMiddleware = new AuthMiddleware(authService);
+const loggingMiddleware = new LoggingMiddleware();
 const userController = new UserController(userStore, authService);
 const recipeController = new RecipeController(recipeStore, recipeFetcher, userStore);
 const recipeRouter = createRecipeRouter(recipeController, authMiddleware);
@@ -93,6 +95,10 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+
+// Add request/response logging middleware
+app.use(loggingMiddleware.logRequest);
+
 app.use(express.json());
 app.use(cookieParser()); // Parse cookies
 

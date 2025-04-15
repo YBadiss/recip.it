@@ -207,6 +207,43 @@ export class RecipeController {
     }
   };
 
+  // Delete a recipe completely from the database
+  deleteRecipe = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        res.status(400).json({ error: 'Recipe ID is required' });
+        return;
+      }
+
+      // Check if the recipe exists
+      const recipe = await this.recipeStore.getRecipeById(id);
+      if (!recipe) {
+        res.status(404).json({ error: 'Recipe not found' });
+        return;
+      }
+
+      // Delete the recipe from the database
+      await this.recipeStore.deleteRecipe(id);
+
+      // Also remove the recipe from all users who have it in their collection
+      // This prevents orphaned references
+      await this.userStore.removeRecipeFromAllUsers(id);
+
+      res.json({
+        message: 'Recipe deleted successfully',
+        recipeId: id,
+      });
+    } catch (error) {
+      console.error('Error deleting recipe:', error);
+      res.status(500).json({
+        error: 'Failed to delete recipe',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  };
+
   // Upload a recipe from a file
   uploadRecipe = async (req: Request, res: Response): Promise<void> => {
     try {

@@ -217,4 +217,17 @@ export class UserStore {
       );
     });
   }
+
+  // Remove a recipe from all users' collections
+  async removeRecipeFromAllUsers(recipeId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.dbConnection.run('DELETE FROM user_recipes WHERE recipe_id = ?', [recipeId], err => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    });
+  }
 }
