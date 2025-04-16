@@ -1,13 +1,13 @@
 import { RecipeController } from '../src/controllers/recipe-controller';
 import { RecipeStore } from '../src/models/recipe-store';
-import { RecipeFetcher } from '../src/services/recipe-fetcher';
+import { RecipeExtractor } from '../src/services/recipe-extractor';
 import { Request, Response } from 'express';
 import { normalizeUrl } from '../src/utils/url-normalizer';
 import { UserStore } from '../src/models/user-store';
 
 // Mock dependencies
 jest.mock('../src/models/recipe-store');
-jest.mock('../src/services/recipe-fetcher');
+jest.mock('../src/services/recipe-extractor');
 jest.mock('../src/utils/url-normalizer');
 jest.mock('../src/models/user-store');
 
@@ -26,7 +26,7 @@ declare module 'express' {
 describe('Recipe Controller Tests', () => {
   let recipeController: RecipeController;
   let mockRecipeStore: jest.Mocked<RecipeStore>;
-  let mockRecipeFetcher: jest.Mocked<RecipeFetcher>;
+  let mockRecipeExtractor: jest.Mocked<RecipeExtractor>;
   let mockUserStore: jest.Mocked<UserStore>;
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
@@ -37,11 +37,11 @@ describe('Recipe Controller Tests', () => {
 
     // Create mock instances
     mockRecipeStore = new RecipeStore({} as any) as jest.Mocked<RecipeStore>;
-    mockRecipeFetcher = new RecipeFetcher({} as any, [] as any) as jest.Mocked<RecipeFetcher>;
+    mockRecipeExtractor = new RecipeExtractor({} as any, [] as any) as jest.Mocked<RecipeExtractor>;
     mockUserStore = new UserStore({} as any) as jest.Mocked<UserStore>;
 
     // Create controller with mocks
-    recipeController = new RecipeController(mockRecipeStore, mockRecipeFetcher, mockUserStore);
+    recipeController = new RecipeController(mockRecipeStore, mockRecipeExtractor, mockUserStore);
 
     // Setup request and response mocks
     mockRes = {
@@ -94,7 +94,7 @@ describe('Recipe Controller Tests', () => {
     expect(mockRecipeStore.getRecipeByNormalizedLink).toHaveBeenCalledWith(normalizedUrl);
 
     // Verify we returned the existing recipe instead of creating a new one
-    expect(mockRecipeFetcher.extractRecipeFromUrl).not.toHaveBeenCalled();
+    expect(mockRecipeExtractor.extractRecipeFromUrl).not.toHaveBeenCalled();
     expect(mockRecipeStore.createRecipe).not.toHaveBeenCalled();
 
     // Verify we added the recipe to the user's collection
@@ -137,7 +137,7 @@ describe('Recipe Controller Tests', () => {
 
     // Setup mocks
     mockRecipeStore.getRecipeByNormalizedLink = jest.fn().mockResolvedValue(null);
-    mockRecipeFetcher.extractRecipeFromUrl = jest.fn().mockResolvedValue(extractedRecipe);
+    mockRecipeExtractor.extractRecipeFromUrl = jest.fn().mockResolvedValue(extractedRecipe);
     mockRecipeStore.createRecipe = jest.fn().mockResolvedValue('new-id');
     mockRecipeStore.getRecipeById = jest.fn().mockResolvedValue(createdRecipe);
     mockUserStore.addRecipeToUser = jest.fn().mockResolvedValue(undefined);
@@ -152,7 +152,7 @@ describe('Recipe Controller Tests', () => {
     expect(mockRecipeStore.getRecipeByNormalizedLink).toHaveBeenCalledWith(normalizedUrl);
 
     // Verify we extracted recipe details
-    expect(mockRecipeFetcher.extractRecipeFromUrl).toHaveBeenCalledWith(normalizedUrl);
+    expect(mockRecipeExtractor.extractRecipeFromUrl).toHaveBeenCalledWith(normalizedUrl);
 
     // Verify we created the recipe
     expect(mockRecipeStore.createRecipe).toHaveBeenCalled();

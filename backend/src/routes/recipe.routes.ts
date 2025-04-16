@@ -20,15 +20,6 @@ export const createRecipeRouter = (
     limits: {
       fileSize: 10 * 1024 * 1024, // 10MB limit
     },
-    fileFilter: (req: FileUploadRequest, file, cb) => {
-      // Accept only PDF and TXT files
-      const allowedMimeTypes = ['application/pdf', 'text/plain'];
-      if (!allowedMimeTypes.includes(file.mimetype)) {
-        req.fileValidationError = 'Only PDF and TXT files are allowed';
-        return cb(null, false);
-      }
-      cb(null, true);
-    },
   });
 
   // Public routes

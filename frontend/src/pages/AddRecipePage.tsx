@@ -199,7 +199,7 @@ const AddRecipePage: React.FC = () => {
                 <Form.Control
                   type="file"
                   ref={fileInputRef}
-                  accept=".pdf,.doc,.docx,.txt"
+                  // accept=".pdf,.doc,.docx,.txt"
                   onChange={handleFileChange}
                 />
                 {selectedFile && (

@@ -2,14 +2,14 @@ import { TestDatabase } from './utils/test-db';
 import supertest from 'supertest';
 import { TestServer } from './utils/test-server';
 import { Recipe } from '../src/models/recipe';
-import { RecipeFetcher } from '../src/services/recipe-fetcher';
+import { RecipeExtractor } from '../src/services/recipe-extractor';
 import OpenAI from 'openai';
 import { ContentFetcher } from '../src/services/content-fetcher';
 
 describe('Full Recipe Import Flow E2E Tests', () => {
   let testDb: TestDatabase;
   let testServer: TestServer;
-  let mockRecipeFetcher: RecipeFetcher;
+  let mockRecipeExtractor: RecipeExtractor;
   // Using any to avoid TypeScript issues with supertest
   let request: any;
 
@@ -19,11 +19,11 @@ describe('Full Recipe Import Flow E2E Tests', () => {
     testDb = new TestDatabase();
     await testDb.init();
 
-    // Create a mock RecipeFetcher
-    mockRecipeFetcher = createMockRecipeFetcher();
+    // Create a mock RecipeExtractor
+    mockRecipeExtractor = createMockRecipeExtractor();
 
     // Create a test server with the test database and mock fetcher
-    testServer = new TestServer(testDb, mockRecipeFetcher);
+    testServer = new TestServer(testDb, mockRecipeExtractor);
     request = supertest(testServer.getApp());
 
     // Mock the authentication middleware for tests
@@ -170,13 +170,13 @@ describe('Full Recipe Import Flow E2E Tests', () => {
   });
 });
 
-// Helper function to create a mock RecipeFetcher
-function createMockRecipeFetcher(): RecipeFetcher {
-  // Create an instance of RecipeFetcher with empty OpenAI and fetchers array
-  const mockFetcher = new RecipeFetcher({} as OpenAI, [] as ContentFetcher[]);
+// Helper function to create a mock RecipeExtractor
+function createMockRecipeExtractor(): RecipeExtractor {
+  // Create an instance of RecipeExtractor with empty OpenAI and fetchers array
+  const mockExtractor = new RecipeExtractor({} as OpenAI, [] as ContentFetcher[]);
 
   // Override the methods we want to mock
-  mockFetcher.extractRecipeFromUrl = jest.fn(async () => ({
+  mockExtractor.extractRecipeFromUrl = jest.fn(async () => ({
     title: 'Test Recipe from URL',
     ingredients: [
       { id: 'ing1', name: 'URL Ingredient 1', quantity: '100', unit: 'g' },
@@ -193,5 +193,5 @@ function createMockRecipeFetcher(): RecipeFetcher {
     servings: 2,
   }));
 
-  return mockFetcher;
+  return mockExtractor;
 }

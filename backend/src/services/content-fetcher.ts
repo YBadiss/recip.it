@@ -3,14 +3,17 @@ import axios, { AxiosInstance } from 'axios';
 import { Config } from '../config';
 import { Supadata } from '@supadata/js';
 
+export interface RecipeContent {
+  text: string;
+  imageUrl: string;
+  userContext?: string; // Additional context information for the user prompt
+  systemContext?: string; // Additional context information for the system prompt
+}
+
 // Interface for content fetchers
 export interface ContentFetcher {
   canFetchContent(url: string): boolean;
-  fetchContent(url: string): Promise<{
-    text: string;
-    imageUrl: string;
-    context?: string; // Additional context information for the prompt
-  }>;
+  fetchContent(url: string): Promise<RecipeContent>;
 }
 
 interface TranscriptChunk {
@@ -56,7 +59,7 @@ export class WebContentFetcher implements ContentFetcher {
     return true;
   }
 
-  async fetchContent(url: string): Promise<{ text: string; imageUrl: string; context?: string }> {
+  async fetchContent(url: string): Promise<RecipeContent> {
     try {
       const response = await this.axios.get(url);
       const $ = cheerio.load(response.data);
@@ -75,9 +78,9 @@ export class WebContentFetcher implements ContentFetcher {
       }
 
       // Add context information
-      let context = '';
+      let userContext = '';
       if (pageTitle) {
-        context = `This content is from the web page titled: "${pageTitle}".`;
+        userContext = `This content is from the web page titled: "${pageTitle}".`;
       }
 
       // Remove scripts, styles, and other non-content elements
@@ -90,7 +93,7 @@ export class WebContentFetcher implements ContentFetcher {
       return {
         text: content.replace(/\s+/g, ' '),
         imageUrl,
-        context,
+        userContext,
       };
     } catch (error) {
       console.error('Error fetching web content:', error);
@@ -125,7 +128,7 @@ export class YouTubeContentFetcher implements ContentFetcher {
     return match ? match[1] : null;
   }
 
-  async fetchContent(url: string): Promise<{ text: string; imageUrl: string; context?: string }> {
+  async fetchContent(url: string): Promise<RecipeContent> {
     const videoId = this.extractVideoId(url);
     if (!videoId) {
       throw new Error('Invalid YouTube URL: Could not extract video ID');
@@ -162,13 +165,22 @@ export class YouTubeContentFetcher implements ContentFetcher {
       const imageUrl = video.thumbnail;
 
       // Build enhanced context with video information
-      let context = `This content is a transcript from the YouTube video titled: "${video.title}".`;
+      let userContext = `This content is a transcript from the YouTube video titled: "${video.title}".`;
 
       if (video.channel && video.channel.name) {
-        context += ` Created by: ${video.channel.name}.`;
+        userContext += ` Created by: ${video.channel.name}.`;
       }
 
-      return { text, imageUrl, context };
+      const systemContext = `
+      Special instructions for YouTube transcripts:
+1. Pay special attention to when the presenter mentions ingredients and their amounts, as they might be scattered throughout the video
+2. Look for the presenter describing cooking times and temperatures, which might be mentioned casually
+3. Infer measurements when they are not explicitly stated but shown visually (mentioned as "this much" or similar expressions)
+4. Be attentive to cooking tools that are shown or used but not explicitly named
+5. The recipe title might be mentioned at the beginning, end, or in the context information
+`;
+
+      return { text, imageUrl, userContext, systemContext };
     } catch (error) {
       console.error('Error fetching YouTube content:', error);
       throw new Error(

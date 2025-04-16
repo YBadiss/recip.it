@@ -9,7 +9,7 @@ import { RecipeController } from './controllers/recipe-controller';
 import { UserController } from './controllers/user-controller';
 import { RecipeStore } from './models/recipe-store';
 import { UserStore } from './models/user-store';
-import { RecipeFetcher } from './services/recipe-fetcher';
+import { RecipeExtractor } from './services/recipe-extractor';
 import { AuthService } from './services/auth-service';
 import { AuthMiddleware } from './middleware/auth-middleware';
 import { LoggingMiddleware } from './middleware/logging-middleware';
@@ -54,12 +54,12 @@ const webFetcher = new WebContentFetcher();
 // Set up dependency injection
 const recipeStore = new RecipeStore(db);
 const userStore = new UserStore(db);
-const recipeFetcher = new RecipeFetcher(openai, [youtubeFetcher, webFetcher]);
+const recipeExtractor = new RecipeExtractor(openai, [youtubeFetcher, webFetcher]);
 const authService = new AuthService();
 const authMiddleware = new AuthMiddleware(authService);
 const loggingMiddleware = new LoggingMiddleware();
 const userController = new UserController(userStore, authService);
-const recipeController = new RecipeController(recipeStore, recipeFetcher, userStore);
+const recipeController = new RecipeController(recipeStore, recipeExtractor, userStore);
 const recipeRouter = createRecipeRouter(recipeController, authMiddleware);
 const userRouter = createUserRouter(userController, authMiddleware);
 

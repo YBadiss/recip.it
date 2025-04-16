@@ -2,21 +2,34 @@ import { OpenAI } from 'openai';
 import { Ingredient, Material, Step } from '../models/recipe';
 import { Config } from '../config';
 import { ChatCompletionMessageParam } from 'openai/resources/chat';
-import { ContentFetcher } from './content-fetcher';
+import { ContentFetcher, RecipeContent } from './content-fetcher';
+import { ChatCompletionContentPartText, ChatCompletionContentPartImage } from 'openai/resources/chat/completions';
 
-// Interface for extracted recipe
+// Interface for extracted recipe - aligned with Recipe model
 export interface ExtractedRecipe {
-  title: string;
-  ingredients: Ingredient[];
-  materials: Material[];
-  steps: Step[];
-  tags: string[];
-  imageUrl: string;
-  cookingTime: string;
-  servings: number;
+  title?: string;
+  ingredients?: Ingredient[]; // Use Ingredient type
+  materials?: Material[]; // Use Material type
+  steps?: Step[]; // Use Step type
+  tags?: string[];
+  imageUrl?: string;
+  cookingTime?: string;
+  servings?: number;
 }
 
-export class RecipeFetcher {
+export interface IRecipeExtractor {
+  extractRecipeFromUrl(url: string): Promise<ExtractedRecipe>;
+  extractRecipeFromContent(
+    url: string,
+    imageUrl: string,
+    userContext?: string,
+    systemContext?: string,
+    textContent?: string,
+    imageContent?: string
+  ): Promise<ExtractedRecipe>;
+}
+
+export class RecipeExtractor implements IRecipeExtractor {
   private openai: OpenAI;
   private fetchers: ContentFetcher[];
 
@@ -25,10 +38,15 @@ export class RecipeFetcher {
     this.fetchers = fetchers;
   }
 
+  async extractRecipeFromUrl(url: string): Promise<ExtractedRecipe> {
+    const content = await this.fetchRecipeContent(url);
+    return this.extractRecipeFromContent(url, content.imageUrl, content.userContext, content.systemContext, content.text, );
+  }
+
   // Function to fetch the content of a recipe URL
-  async fetchRecipeContent(
+  private async fetchRecipeContent(
     url: string
-  ): Promise<{ text: string; imageUrl: string; context?: string }> {
+  ): Promise<RecipeContent> {
     // Find the appropriate fetcher for this URL
     for (const fetcher of this.fetchers) {
       if (fetcher.canFetchContent(url)) {
@@ -41,19 +59,17 @@ export class RecipeFetcher {
   }
 
   // Function to extract recipe details using OpenAI
-  async extractRecipeDetails(
+  async extractRecipeFromContent(
     url: string,
-    content: string,
     imageUrl: string,
-    context?: string
+    userContext?: string,
+    systemContext?: string,
+    textContent?: string,
+    imageContent?: string
   ): Promise<ExtractedRecipe> {
-    // Check if we're dealing with a YouTube transcript
-    const isYoutubeContent = context?.includes('YouTube video') || false;
-
-    const messages: ChatCompletionMessageParam[] = [
-      {
-        role: 'system',
-        content: `You are a recipe extraction expert. ${isYoutubeContent ? 'You are working with a YouTube video transcript of a cooking demonstration. ' : ''}Extract the following from the recipe content:
+    const systemMessage: ChatCompletionMessageParam = {
+      role: 'system',
+      content: `You are a recipe extraction expert. Extract the following from the recipe content:
 
 1. Title of the recipe
 2. List of ingredients with quantities and units. IMPORTANT: preserve amounts (e.g. for fruits/vegetables) while also providing metric conversions.
@@ -98,25 +114,37 @@ Important rules:
    "Coupez les pommes de terre en rondelles fines."
    "Pelez les gousses d'ail et émincez-les."
 
-${
-  isYoutubeContent
-    ? `
-Special instructions for YouTube transcripts:
-1. Pay special attention to when the presenter mentions ingredients and their amounts, as they might be scattered throughout the video
-2. Look for the presenter describing cooking times and temperatures, which might be mentioned casually
-3. Infer measurements when they are not explicitly stated but shown visually (mentioned as "this much" or similar expressions)
-4. Be attentive to cooking tools that are shown or used but not explicitly named
-5. The recipe title might be mentioned at the beginning, end, or in the context information
-`
-    : ''
-}
+${systemContext}
 
 Be accurate and comprehensive in your extraction. If certain information is clearly missing, provide empty arrays or reasonable defaults.`,
-      },
-      {
-        role: 'user',
-        content: `Recipe URL: ${url}\n\n${context ? `Context: ${context}\n\n` : ''}Content: ${content}`,
-      },
+    };
+
+    const contentParts = [];
+    
+    if (textContent) {
+      contentParts.push({
+        type: 'text',
+        text: `Recipe URL: ${url}\n\n${userContext ? `Context: ${userContext}\n\n` : ''}Content: ${textContent}`
+      } as ChatCompletionContentPartText);
+    }
+    
+    if (imageContent) {
+      contentParts.push({
+        type: 'image_url',
+        image_url: {
+          url: imageContent
+        }
+      } as ChatCompletionContentPartImage);
+    }
+    
+    const userMessage: ChatCompletionMessageParam = {
+      role: 'user',
+      content: contentParts
+    };
+
+    const messages: ChatCompletionMessageParam[] = [
+      systemMessage,
+      userMessage
     ];
 
     console.log(messages);
@@ -151,29 +179,4 @@ Be accurate and comprehensive in your extraction. If certain information is clea
       );
     }
   }
-
-  // Function to extract recipe from content directly
-  async extractRecipeFromContent(
-    url: string,
-    content: string,
-    imageUrl: string = '',
-    context?: string
-  ): Promise<ExtractedRecipe> {
-    // Extract recipe details using OpenAI
-    return await this.extractRecipeDetails(url, content, imageUrl, context);
-  }
-
-  // Function to extract recipe from URL
-  async extractRecipeFromUrl(url: string): Promise<ExtractedRecipe> {
-    // Don't process file:// URLs from reimporting
-    if (url.startsWith('file://')) {
-      throw new Error('Reimporting file-based recipes is not supported');
-    }
-
-    // Fetch content from the URL
-    const { text, imageUrl, context } = await this.fetchRecipeContent(url);
-
-    // Extract recipe details using OpenAI
-    return await this.extractRecipeDetails(url, text, imageUrl, context);
-  }
-}
+} 

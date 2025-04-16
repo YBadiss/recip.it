@@ -3,7 +3,7 @@ import cors from 'cors';
 import { Express, Request, Response, NextFunction } from 'express';
 import { TestDatabase } from './test-db';
 import { RecipeStore } from '../../src/models/recipe-store';
-import { RecipeFetcher } from '../../src/services/recipe-fetcher';
+import { RecipeExtractor } from '../../src/services/recipe-extractor';
 import { RecipeController } from '../../src/controllers/recipe-controller';
 import { createRecipeRouter } from '../../src/routes/recipe.routes';
 import { AuthMiddleware } from '../../src/middleware/auth-middleware';
@@ -23,7 +23,7 @@ export class TestServer {
   private testUserId: string = 'test-user-id';
   private recipeStore: RecipeStore;
 
-  constructor(testDb: TestDatabase, mockRecipeFetcher?: RecipeFetcher) {
+  constructor(testDb: TestDatabase, mockRecipeExtractor?: RecipeExtractor) {
     this.app = express();
 
     // Configure middleware
@@ -41,11 +41,11 @@ export class TestServer {
     // Mock the auth middleware for testing
     this.mockAuthMiddleware();
 
-    // Set up the recipe fetcher (use mock if provided)
-    const recipeFetcher = mockRecipeFetcher || createDefaultRecipeFetcher();
+    // Set up the recipe extractor (use mock if provided)
+    const recipeExtractor = mockRecipeExtractor || createDefaultRecipeExtractor();
 
     // Create the recipe controller
-    this.recipeController = new RecipeController(this.recipeStore, recipeFetcher, this.userStore);
+    this.recipeController = new RecipeController(this.recipeStore, recipeExtractor, this.userStore);
 
     // Create and configure the recipe router
     const recipeRouter = createRecipeRouter(this.recipeController, this.authMiddleware);
@@ -135,8 +135,8 @@ export class TestServer {
   }
 }
 
-// Helper function to create a default recipe fetcher
-function createDefaultRecipeFetcher(): RecipeFetcher {
+// Helper function to create a default recipe extractor
+function createDefaultRecipeExtractor(): RecipeExtractor {
   const openai = new OpenAI({
     apiKey: Config.OPENAI_API_KEY,
   });
@@ -145,5 +145,5 @@ function createDefaultRecipeFetcher(): RecipeFetcher {
   const youtubeFetcher = new YouTubeContentFetcher();
   const webFetcher = new WebContentFetcher();
 
-  return new RecipeFetcher(openai, [youtubeFetcher, webFetcher]);
+  return new RecipeExtractor(openai, [youtubeFetcher, webFetcher]);
 }
