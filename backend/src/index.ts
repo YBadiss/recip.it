@@ -8,7 +8,7 @@ import { createUserRouter } from './routes/user.routes';
 import { createWebhookRouter } from './routes/webhook.routes';
 import { RecipeController } from './controllers/recipe-controller';
 import { UserController } from './controllers/user-controller';
-import { WebhookController } from './controllers/webhook-controller';
+import { MetaWebhookController } from './controllers/webhooks/meta-webhook-controller';
 import { RecipeStore } from './models/recipe-store';
 import { UserStore } from './models/user-store';
 import { RecipeExtractor } from './services/recipe-extractor';
@@ -19,6 +19,8 @@ import { initDatabase, getDatabase } from './db/migrate';
 import OpenAI from 'openai';
 import { Config } from './config';
 import { YouTubeContentFetcher, WebContentFetcher } from './services/content-fetcher';
+import { MetaService } from './services/meta/meta-service';
+import { InstagramService } from './services/meta/instagram-service';
 
 // Create Express app
 const app = express();
@@ -62,10 +64,12 @@ const authMiddleware = new AuthMiddleware(authService);
 const loggingMiddleware = new LoggingMiddleware();
 const userController = new UserController(userStore, authService);
 const recipeController = new RecipeController(recipeStore, recipeExtractor, userStore);
-const webhookController = new WebhookController();
+const igService = new InstagramService();
+const metaService = new MetaService(igService);
+const igWebhookController = new MetaWebhookController(metaService);
 const recipeRouter = createRecipeRouter(recipeController, authMiddleware);
 const userRouter = createUserRouter(userController, authMiddleware);
-const webhookRouter = createWebhookRouter(webhookController);
+const webhookRouter = createWebhookRouter(igWebhookController);
 
 // Middleware
 app.use(
