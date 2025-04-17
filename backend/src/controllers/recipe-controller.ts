@@ -143,7 +143,9 @@ export class RecipeController {
 
       try {
         // Extract recipe details from URL
-        const extractedRecipe = await this.recipeExtractor.extractRecipeFromUrl(existingRecipe.link);
+        const extractedRecipe = await this.recipeExtractor.extractRecipeFromUrl(
+          existingRecipe.link
+        );
 
         // Update the recipe in the database
         const recipeData = {
@@ -256,7 +258,7 @@ export class RecipeController {
       try {
         // Process the uploaded file
         const processedFile = await this.fileProcessor.processFile(req.file);
-        
+
         // Process the recipe (shared functionality)
         await this._processRecipe({
           link: processedFile.fileUrl,

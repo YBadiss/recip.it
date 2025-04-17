@@ -1,12 +1,14 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import cookieParser from 'cookie-parser';
 import { createRecipeRouter } from './routes/recipe.routes';
 import { createUserRouter } from './routes/user.routes';
+import { createWebhookRouter } from './routes/webhook.routes';
 import { RecipeController } from './controllers/recipe-controller';
 import { UserController } from './controllers/user-controller';
+import { WebhookController } from './controllers/webhook-controller';
 import { RecipeStore } from './models/recipe-store';
 import { UserStore } from './models/user-store';
 import { RecipeExtractor } from './services/recipe-extractor';
@@ -60,8 +62,10 @@ const authMiddleware = new AuthMiddleware(authService);
 const loggingMiddleware = new LoggingMiddleware();
 const userController = new UserController(userStore, authService);
 const recipeController = new RecipeController(recipeStore, recipeExtractor, userStore);
+const webhookController = new WebhookController();
 const recipeRouter = createRecipeRouter(recipeController, authMiddleware);
 const userRouter = createUserRouter(userController, authMiddleware);
+const webhookRouter = createWebhookRouter(webhookController);
 
 // Middleware
 app.use(
@@ -99,12 +103,26 @@ app.use(
 // Add request/response logging middleware
 app.use(loggingMiddleware.logRequest);
 
-app.use(express.json());
+// Define interface for request with rawBody
+interface RequestWithRawBody extends Request {
+  rawBody: Buffer;
+}
+
+// Add raw body parsing middleware before JSON parsing
+app.use(
+  express.json({
+    verify: (req: Request, res: Response, buf: Buffer) => {
+      // Store the raw body for signature verification
+      (req as RequestWithRawBody).rawBody = buf;
+    },
+  })
+);
 app.use(cookieParser()); // Parse cookies
 
 // Routes
 app.use('/recipes', recipeRouter);
 app.use('/users', userRouter);
+app.use('/webhooks', webhookRouter);
 
 // Root route for API health check
 app.get('/', (req, res) => {

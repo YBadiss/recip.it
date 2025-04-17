@@ -3,7 +3,7 @@ import pdfParse from 'pdf-parse';
 
 export enum ContentType {
   TEXT = 'text',
-  IMAGE = 'image'
+  IMAGE = 'image',
 }
 
 export interface ProcessedFile {
@@ -36,7 +36,9 @@ export class FileProcessor {
 
         // If text is too short, the PDF might be image-based or empty
         if (fileContent.length < 50) {
-          throw new Error('Unable to extract sufficient text from PDF. The file may be image-based or empty.');
+          throw new Error(
+            'Unable to extract sufficient text from PDF. The file may be image-based or empty.'
+          );
         }
 
         console.log(`Extracted ${fileContent.length} characters from PDF`);
@@ -61,9 +63,10 @@ export class FileProcessor {
     }
 
     // Calculate MD5 hash of the file content
-    const md5Hash = crypto.createHash('md5').update(
-      contentType === ContentType.IMAGE ? file.buffer : fileContent
-    ).digest('hex');
+    const md5Hash = crypto
+      .createHash('md5')
+      .update(contentType === ContentType.IMAGE ? file.buffer : fileContent)
+      .digest('hex');
 
     // Create the file URL
     const fileUrl = `file://upload/${md5Hash}`;
@@ -72,7 +75,7 @@ export class FileProcessor {
     const prompt = this.generatePrompt({
       contentType,
       mimeType: file.mimetype,
-      md5Hash
+      md5Hash,
     });
 
     return {
@@ -82,7 +85,7 @@ export class FileProcessor {
       contentType,
       mimeType: file.mimetype,
       isImageContent,
-      prompt
+      prompt,
     };
   }
 
@@ -91,15 +94,20 @@ export class FileProcessor {
    * @param fileInfo File information to base the prompt on
    * @returns A formatted prompt string
    */
-  generatePrompt(fileInfo: { contentType: ContentType, mimeType: string, md5Hash: string }): string {
+  generatePrompt(fileInfo: {
+    contentType: ContentType;
+    mimeType: string;
+    md5Hash: string;
+  }): string {
     const fileTypeDescription = this.getFileTypeDescription(fileInfo);
     let prompt = `Uploaded ${fileTypeDescription} with MD5: ${fileInfo.md5Hash}`;
-    
+
     // Add specific instructions for image-based recipes
     if (fileInfo.contentType === ContentType.IMAGE) {
-      prompt += '. Extract the recipe from this image. Identify ingredients, steps, cooking time, and any other recipe details visible in the image.';
+      prompt +=
+        '. Extract the recipe from this image. Identify ingredients, steps, cooking time, and any other recipe details visible in the image.';
     }
-    
+
     return prompt;
   }
 
@@ -108,7 +116,7 @@ export class FileProcessor {
    * @param fileInfo File information object
    * @returns A string describing the file type
    */
-  getFileTypeDescription(fileInfo: { contentType: ContentType, mimeType: string }): string {
+  getFileTypeDescription(fileInfo: { contentType: ContentType; mimeType: string }): string {
     if (fileInfo.contentType === ContentType.IMAGE) {
       return 'image recipe';
     } else if (fileInfo.mimeType === 'application/pdf') {
@@ -119,4 +127,4 @@ export class FileProcessor {
       return fileInfo.mimeType;
     }
   }
-} 
+}

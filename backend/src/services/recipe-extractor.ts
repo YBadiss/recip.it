@@ -3,7 +3,10 @@ import { Ingredient, Material, Step } from '../models/recipe';
 import { Config } from '../config';
 import { ChatCompletionMessageParam } from 'openai/resources/chat';
 import { ContentFetcher, RecipeContent } from './content-fetcher';
-import { ChatCompletionContentPartText, ChatCompletionContentPartImage } from 'openai/resources/chat/completions';
+import {
+  ChatCompletionContentPartText,
+  ChatCompletionContentPartImage,
+} from 'openai/resources/chat/completions';
 
 // Interface for extracted recipe - aligned with Recipe model
 export interface ExtractedRecipe {
@@ -40,13 +43,17 @@ export class RecipeExtractor implements IRecipeExtractor {
 
   async extractRecipeFromUrl(url: string): Promise<ExtractedRecipe> {
     const content = await this.fetchRecipeContent(url);
-    return this.extractRecipeFromContent(url, content.imageUrl, content.userContext, content.systemContext, content.text, );
+    return this.extractRecipeFromContent(
+      url,
+      content.imageUrl,
+      content.userContext,
+      content.systemContext,
+      content.text
+    );
   }
 
   // Function to fetch the content of a recipe URL
-  private async fetchRecipeContent(
-    url: string
-  ): Promise<RecipeContent> {
+  private async fetchRecipeContent(url: string): Promise<RecipeContent> {
     // Find the appropriate fetcher for this URL
     for (const fetcher of this.fetchers) {
       if (fetcher.canFetchContent(url)) {
@@ -120,32 +127,29 @@ Be accurate and comprehensive in your extraction. If certain information is clea
     };
 
     const contentParts = [];
-    
+
     if (textContent) {
       contentParts.push({
         type: 'text',
-        text: `Recipe URL: ${url}\n\n${userContext ? `Context: ${userContext}\n\n` : ''}Content: ${textContent}`
+        text: `Recipe URL: ${url}\n\n${userContext ? `Context: ${userContext}\n\n` : ''}Content: ${textContent}`,
       } as ChatCompletionContentPartText);
     }
-    
+
     if (imageContent) {
       contentParts.push({
         type: 'image_url',
         image_url: {
-          url: imageContent
-        }
+          url: imageContent,
+        },
       } as ChatCompletionContentPartImage);
     }
-    
+
     const userMessage: ChatCompletionMessageParam = {
       role: 'user',
-      content: contentParts
+      content: contentParts,
     };
 
-    const messages: ChatCompletionMessageParam[] = [
-      systemMessage,
-      userMessage
-    ];
+    const messages: ChatCompletionMessageParam[] = [systemMessage, userMessage];
 
     console.log(messages);
 
@@ -179,4 +183,4 @@ Be accurate and comprehensive in your extraction. If certain information is clea
       );
     }
   }
-} 
+}

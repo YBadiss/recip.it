@@ -70,4 +70,19 @@ export class Config {
   static get COOKIE_NAME(): string {
     return process.env.COOKIE_NAME || 'recipeit_token';
   }
+
+  static get INSTAGRAM_VERIFY_TOKEN(): string {
+    return (
+      process.env.INSTAGRAM_VERIFY_TOKEN ||
+      'default-instagram-webhook-verify-token-for-development-only'
+    );
+  }
+
+  static get INSTAGRAM_APP_SECRET(): string {
+    const secret = process.env.INSTAGRAM_APP_SECRET;
+    if (!secret) {
+      console.warn('INSTAGRAM_APP_SECRET is not set in environment variables');
+    }
+    return secret || 'instagram-app-secret-not-configured';
+  }
 }

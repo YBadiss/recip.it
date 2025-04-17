@@ -196,12 +196,7 @@ const AddRecipePage: React.FC = () => {
               </Form.Group>
             ) : (
               <Form.Group className="mb-3">
-                <Form.Control
-                  type="file"
-                  ref={fileInputRef}
-                  // accept=".pdf,.doc,.docx,.txt"
-                  onChange={handleFileChange}
-                />
+                <Form.Control type="file" ref={fileInputRef} onChange={handleFileChange} />
                 {selectedFile && (
                   <div className="mt-2">
                     <span className="text-muted">Selected file: {selectedFile.name}</span>

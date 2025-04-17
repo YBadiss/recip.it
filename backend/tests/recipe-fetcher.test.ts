@@ -29,25 +29,27 @@ describe('Recipe Extractor Service E2E Tests', () => {
   });
 
   // Test extracting recipe details from YouTube
-  runYoutubeTest('should extract recipe details from YouTube', async () => {
-    // Use a standard YouTube cooking video
-    const url = 'https://www.youtube.com/watch?v=rDEnIFrJJ9c'; // Basic banana bread video
+  runYoutubeTest(
+    'should extract recipe details from YouTube',
+    async () => {
+      // Use a standard YouTube cooking video
+      const url = 'https://www.youtube.com/watch?v=rDEnIFrJJ9c'; // Basic banana bread video
 
-    try {
-      // Extract recipe from YouTube URL
-      const recipe = await recipeExtractor.extractRecipeFromUrl(url);
+      try {
+        // Extract recipe from YouTube URL
+        const recipe = await recipeExtractor.extractRecipeFromUrl(url);
 
-      // Verify basic recipe structure
-      expect(recipe).toBeDefined();
-      expect(recipe.title).toBeDefined();
-      expect(recipe.ingredients).toBeDefined();
-      expect(recipe.steps).toBeDefined();
-    } catch (error) {
-      console.error('YouTube extraction test failed:', error);
-      throw error;
-    }
-  },
-  30000
+        // Verify basic recipe structure
+        expect(recipe).toBeDefined();
+        expect(recipe.title).toBeDefined();
+        expect(recipe.ingredients).toBeDefined();
+        expect(recipe.steps).toBeDefined();
+      } catch (error) {
+        console.error('YouTube extraction test failed:', error);
+        throw error;
+      }
+    },
+    30000
   ); // Increase timeout to 30 seconds for the full extraction process
 
   // Test extracting recipe details from a specific URL
@@ -89,7 +91,12 @@ describe('Recipe Extractor Service E2E Tests', () => {
     `;
 
     // Test extracting recipe details from content
-    const extractedRecipe = await recipeExtractor.extractRecipeFromContent('test-url', content, '', undefined);
+    const extractedRecipe = await recipeExtractor.extractRecipeFromContent(
+      'test-url',
+      content,
+      '',
+      undefined
+    );
 
     // Verify extracted recipe
     expect(extractedRecipe).toBeDefined();
@@ -99,10 +106,18 @@ describe('Recipe Extractor Service E2E Tests', () => {
 
     // Verify recipe details are as expected
     expect(extractedRecipe.title?.toLowerCase()).toContain('pancake');
-    expect(extractedRecipe.ingredients?.some(i => i.name.toLowerCase().includes('flour'))).toBeTruthy();
-    expect(extractedRecipe.ingredients?.some(i => i.name.toLowerCase().includes('egg'))).toBeTruthy();
-    expect(extractedRecipe.ingredients?.some(i => i.name.toLowerCase().includes('milk'))).toBeTruthy();
+    expect(
+      extractedRecipe.ingredients?.some(i => i.name.toLowerCase().includes('flour'))
+    ).toBeTruthy();
+    expect(
+      extractedRecipe.ingredients?.some(i => i.name.toLowerCase().includes('egg'))
+    ).toBeTruthy();
+    expect(
+      extractedRecipe.ingredients?.some(i => i.name.toLowerCase().includes('milk'))
+    ).toBeTruthy();
     expect(extractedRecipe.steps?.some(s => s.action.toLowerCase().includes('bowl'))).toBeTruthy();
-    expect(extractedRecipe.steps?.some(s => s.action.toLowerCase().includes('griddle'))).toBeTruthy();
+    expect(
+      extractedRecipe.steps?.some(s => s.action.toLowerCase().includes('griddle'))
+    ).toBeTruthy();
   });
 });
