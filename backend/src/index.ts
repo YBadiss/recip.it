@@ -21,6 +21,7 @@ import { Config } from './config';
 import { YouTubeContentFetcher, WebContentFetcher } from './services/content-fetcher';
 import { MetaService } from './services/meta/meta-service';
 import { RecipeService } from './services/recipe-service';
+import { VideoService } from './services/media/video-service';
 
 // Create Express app
 const app = express();
@@ -65,7 +66,8 @@ const loggingMiddleware = new LoggingMiddleware();
 const userController = new UserController(userStore, authService);
 const recipeService = new RecipeService(recipeStore, userStore, recipeExtractor);
 const recipeController = new RecipeController(recipeService);
-const metaService = new MetaService(recipeService);
+const videoService = new VideoService(Config.IMGUR_CLIENT_ID);
+const metaService = new MetaService(recipeService, videoService);
 const metaWebhookController = new MetaWebhookController(metaService);
 const recipeRouter = createRecipeRouter(recipeController, authMiddleware);
 const userRouter = createUserRouter(userController, authMiddleware);

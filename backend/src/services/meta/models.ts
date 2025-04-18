@@ -36,7 +36,7 @@ export interface MetaPost {
   link: string;
   textContent?: string;
   imageContent?: string;
-  reelUrl: string;
+  imageUrl: string;
   userContext?: string;
   systemContext?: string;
 }

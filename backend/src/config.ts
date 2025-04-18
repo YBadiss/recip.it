@@ -104,4 +104,12 @@ export class Config {
   static get RECIPE_URL_PREFIX(): string {
     return process.env.RECIPE_URL_PREFIX || 'http://localhost:3000/recipes';
   }
+
+  static get IMGUR_CLIENT_ID(): string {
+    const clientId = process.env.IMGUR_CLIENT_ID;
+    if (!clientId) {
+      console.warn('IMGUR_CLIENT_ID is not set in environment variables');
+    }
+    return clientId || '';
+  }
 }

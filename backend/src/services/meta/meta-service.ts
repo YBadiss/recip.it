@@ -5,6 +5,7 @@ import { Config } from '../../config';
 import { MetaPost, MetaWebhookPayload } from './models';
 import axios from 'axios';
 import { RecipeService } from '../recipe-service';
+import { VideoService } from '../media/video-service';
 
 // Extend the Express Request interface to include rawBody
 interface RequestWithRawBody extends Request {
@@ -16,12 +17,14 @@ export class MetaService {
   private userId: string;
   private accessToken: string;
   private recipeService: RecipeService;
+  private videoService: VideoService;
 
-  constructor(recipeService: RecipeService) {
+  constructor(recipeService: RecipeService, videoService: VideoService) {
     this.logger = new Logger('MetaService');
     this.userId = Config.META_USER_ID;
     this.accessToken = Config.META_ACCESS_TOKEN;
     this.recipeService = recipeService;
+    this.videoService = videoService;
   }
 
   /**
@@ -118,21 +121,31 @@ export class MetaService {
 
             // Check if this is a message with text
             if (messaging.message) {
-              if (messaging.message.text) {
-                const messageText = messaging.message.text;
-                await this.sendMessage(senderId, `You've said: ${messageText}`);
-              }
-
               // Check if there are attachments
               if (messaging.message.attachments && messaging.message.attachments.length > 0) {
                 for (const attachment of messaging.message.attachments) {
                   this.logger.info('Processing attachment', { type: attachment.type });
 
                   if (attachment.type === 'ig_reel') {
+                    await this.sendMessage(
+                      senderId,
+                      `I am processing your reel. This may take a few seconds...`
+                    );
+
+                    let imageUrl = '';
+                    try {
+                      // Extract the first frame from the video and upload it to Imgur
+                      imageUrl = await this.videoService.extractFirstFrameAndUploadToImgur(
+                        attachment.payload.url
+                      );
+                    } catch (error) {
+                      this.logger.error('Error processing video thumbnail', { error });
+                    }
+
                     const metaPost: MetaPost = {
                       link: `meta://reel/${attachment.payload.reel_video_id}`,
                       textContent: attachment.payload.title,
-                      reelUrl: attachment.payload.url,
+                      imageUrl: imageUrl,
                     };
 
                     try {
