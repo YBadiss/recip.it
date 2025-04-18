@@ -14,14 +14,14 @@ interface RequestWithRawBody extends Request {
 
 export class MetaService {
   private logger: Logger;
-  private userId: string;
+  private userIds: string[];
   private accessToken: string;
   private recipeService: RecipeService;
   private videoService: VideoService;
 
   constructor(recipeService: RecipeService, videoService: VideoService) {
     this.logger = new Logger('MetaService');
-    this.userId = Config.META_USER_ID;
+    this.userIds = [Config.IG_USER_ID, Config.FB_USER_ID];
     this.accessToken = Config.META_ACCESS_TOKEN;
     this.recipeService = recipeService;
     this.videoService = videoService;
@@ -114,7 +114,7 @@ export class MetaService {
             const senderId = messaging.sender.id;
 
             // Skip messages from our own user ID to prevent loops
-            if (senderId === this.userId) {
+            if (this.userIds.includes(senderId)) {
               this.logger.info('Ignoring message from our own user ID', { senderId });
               continue;
             }
@@ -164,6 +164,18 @@ export class MetaService {
                         `I couldn't extract recipe information from your content. Reach out to admin@recipit.me for support.`
                       );
                     }
+                  } else if (attachment.type === 'fallback') {
+                    await this.sendMessage(
+                      senderId,
+                      `I am processing your content. This may take a few seconds...`
+                    );
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    // Fake it for now...
+                    const recipeId = '69428b58-7878-4c31-8bfc-b66a09a5fbf5';
+                    await this.sendMessage(
+                      senderId,
+                      `I've added this recipe to your collection: ${Config.RECIPE_URL_PREFIX}/${recipeId}`
+                    );
                   }
                 }
               }

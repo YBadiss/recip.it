@@ -93,10 +93,18 @@ export class Config {
     return token || '';
   }
 
-  static get META_USER_ID(): string {
-    const userId = process.env.META_USER_ID;
+  static get IG_USER_ID(): string {
+    const userId = process.env.IG_USER_ID;
     if (!userId) {
-      console.warn('META_USER_ID is not set in environment variables');
+      console.warn('IG_USER_ID is not set in environment variables');
+    }
+    return userId || '';
+  }
+
+  static get FB_USER_ID(): string {
+    const userId = process.env.FB_USER_ID;
+    if (!userId) {
+      console.warn('FB_USER_ID is not set in environment variables');
     }
     return userId || '';
   }
