@@ -22,7 +22,7 @@ export const getUsers = async (): Promise<User[]> => {
 export const getRecipes = async (): Promise<Recipe[]> => {
   const response = await api.get('/recipes');
   // Handle both possible API response formats
-  return response.data.recipes || response.data;
+  return response.data.recipes;
 };
 
 export const reimportRecipe = async (id: string): Promise<Recipe> => {

@@ -100,4 +100,8 @@ export class Config {
     }
     return userId || '';
   }
+
+  static get RECIPE_URL_PREFIX(): string {
+    return process.env.RECIPE_URL_PREFIX || 'http://localhost:3000/recipes';
+  }
 }

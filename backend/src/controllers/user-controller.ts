@@ -179,7 +179,7 @@ export class UserController {
   private setCookie(res: Response, token: string, maxAge: number): void {
     res.cookie(Config.COOKIE_NAME, token, {
       httpOnly: Config.IS_PRODUCTION,
-      domain: Config.DOMAIN,
+      domain: Config.IS_PRODUCTION ? Config.DOMAIN : undefined,
       secure: Config.IS_PRODUCTION,
       sameSite: Config.IS_PRODUCTION ? 'none' : 'lax',
       maxAge,

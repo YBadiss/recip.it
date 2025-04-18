@@ -30,7 +30,7 @@ export const createRecipeRouter = (
   router.get('/:id', authMiddleware.tryAuthenticate, recipeController.getRecipeById);
 
   // POST /recipes - Create a new recipe from a URL
-  router.post('/', authMiddleware.tryAuthenticate, recipeController.createRecipe);
+  router.post('/', authMiddleware.tryAuthenticate, recipeController.createRecipeFromLink);
 
   // POST /recipes/upload - Upload a recipe file
   router.post(
@@ -69,7 +69,7 @@ export const createRecipeRouter = (
         next();
       });
     },
-    recipeController.uploadRecipe
+    recipeController.createRecipeFromFile
   );
 
   // Protected routes

@@ -11,11 +11,32 @@ interface MetaMessaging {
   timestamp: number;
   message?: {
     mid: string;
-    text: string;
+    text?: string;
+    attachments?: MetaAttachment[];
   };
 }
+
+interface IGReelAttachement {
+  type: 'ig_reel';
+  payload: {
+    reel_video_id: string;
+    title: string;
+    url: string;
+  };
+}
+
+type MetaAttachment = IGReelAttachement;
 
 export interface MetaWebhookPayload {
   object: string;
   entry: MetaWebhookEntry[];
+}
+
+export interface MetaPost {
+  link: string;
+  textContent?: string;
+  imageContent?: string;
+  reelUrl: string;
+  userContext?: string;
+  systemContext?: string;
 }

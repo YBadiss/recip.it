@@ -6,7 +6,7 @@ export enum ContentType {
   IMAGE = 'image',
 }
 
-export interface ProcessedFile {
+export interface RecipeFile {
   fileContent: string;
   fileUrl: string;
   md5Hash: string;
@@ -22,7 +22,7 @@ export class FileProcessor {
    * @param file The uploaded file (from multer)
    * @returns ProcessedFile object with content, URL and hash
    */
-  async processFile(file: Express.Multer.File): Promise<ProcessedFile> {
+  async processFile(file: Express.Multer.File): Promise<RecipeFile> {
     // Extract content based on file type
     let fileContent: string;
     let contentType: ContentType = ContentType.TEXT;

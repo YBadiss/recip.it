@@ -2,8 +2,9 @@ import { Request } from 'express';
 import crypto from 'crypto';
 import { Logger } from '../../utils/logger';
 import { Config } from '../../config';
-import { MetaWebhookPayload } from './models';
-import { InstagramService } from './instagram-service';
+import { MetaPost, MetaWebhookPayload } from './models';
+import axios from 'axios';
+import { RecipeService } from '../recipe-service';
 
 // Extend the Express Request interface to include rawBody
 interface RequestWithRawBody extends Request {
@@ -12,11 +13,15 @@ interface RequestWithRawBody extends Request {
 
 export class MetaService {
   private logger: Logger;
-  private igService: InstagramService;
+  private userId: string;
+  private accessToken: string;
+  private recipeService: RecipeService;
 
-  constructor(igService: InstagramService) {
+  constructor(recipeService: RecipeService) {
     this.logger = new Logger('MetaService');
-    this.igService = igService;
+    this.userId = Config.META_USER_ID;
+    this.accessToken = Config.META_ACCESS_TOKEN;
+    this.recipeService = recipeService;
   }
 
   /**
@@ -96,13 +101,103 @@ export class MetaService {
     }
   }
 
-  public processWebhook(payload: MetaWebhookPayload): void {
-    this.logger.info('Processing Meta webhook', { payload });
-    if (payload.object === 'instagram') {
-      this.logger.info('Instagram webhook received', { payload });
-      this.igService.processWebhook(payload);
-    } else {
-      this.logger.warn('Unknown meta webhook', { payload });
+  public async processWebhook(payload: MetaWebhookPayload): Promise<void> {
+    try {
+      // Process each entry in the webhook payload
+      for (const entry of payload.entry) {
+        // Process messaging events (direct messages)
+        if (entry.messaging) {
+          for (const messaging of entry.messaging) {
+            const senderId = messaging.sender.id;
+
+            // Skip messages from our own user ID to prevent loops
+            if (senderId === this.userId) {
+              this.logger.info('Ignoring message from our own user ID', { senderId });
+              continue;
+            }
+
+            // Check if this is a message with text
+            if (messaging.message) {
+              if (messaging.message.text) {
+                const messageText = messaging.message.text;
+                await this.sendMessage(senderId, `You've said: ${messageText}`);
+              }
+
+              // Check if there are attachments
+              if (messaging.message.attachments && messaging.message.attachments.length > 0) {
+                for (const attachment of messaging.message.attachments) {
+                  this.logger.info('Processing attachment', { type: attachment.type });
+
+                  if (attachment.type === 'ig_reel') {
+                    const metaPost: MetaPost = {
+                      link: `meta://reel/${attachment.payload.reel_video_id}`,
+                      textContent: attachment.payload.title,
+                      reelUrl: attachment.payload.url,
+                    };
+
+                    try {
+                      const recipe = await this.recipeService.addRecipeFromMetaPost(
+                        metaPost,
+                        senderId
+                      );
+                      await this.sendMessage(
+                        senderId,
+                        `I've added this recipe to your collection: ${Config.RECIPE_URL_PREFIX}/${recipe.id}`
+                      );
+                    } catch (error) {
+                      this.logger.error('Error extracting recipe from content', { error });
+                      await this.sendMessage(
+                        senderId,
+                        `I couldn't extract recipe information from your content. Reach out to admin@recipit.me for support.`
+                      );
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error processing Instagram webhook messages', { error });
+    }
+  }
+
+  /**
+   * Send a message to a user on Instagram
+   * @param recipientId ID of the recipient
+   * @param messageText Text content of the message
+   */
+  private async sendMessage(recipientId: string, messageText: string): Promise<void> {
+    try {
+      // Instagram messaging API URL
+      const url = `https://graph.facebook.com/v19.0/me/messages`;
+
+      // Message payload
+      const payload = {
+        recipient: { id: recipientId },
+        message: { text: messageText },
+        messaging_type: 'RESPONSE',
+      };
+
+      // Send message
+      const response = await axios.post(url, payload, {
+        params: {
+          access_token: this.accessToken,
+        },
+      });
+
+      this.logger.info('Sent message to Instagram user', {
+        recipientId,
+        messageText,
+        responseData: response.data,
+      });
+    } catch (error) {
+      this.logger.error('Failed to send Instagram message', {
+        recipientId,
+        messageText,
+        error,
+      });
     }
   }
 }

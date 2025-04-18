@@ -20,7 +20,7 @@ import OpenAI from 'openai';
 import { Config } from './config';
 import { YouTubeContentFetcher, WebContentFetcher } from './services/content-fetcher';
 import { MetaService } from './services/meta/meta-service';
-import { InstagramService } from './services/meta/instagram-service';
+import { RecipeService } from './services/recipe-service';
 
 // Create Express app
 const app = express();
@@ -63,13 +63,13 @@ const authService = new AuthService();
 const authMiddleware = new AuthMiddleware(authService);
 const loggingMiddleware = new LoggingMiddleware();
 const userController = new UserController(userStore, authService);
-const recipeController = new RecipeController(recipeStore, recipeExtractor, userStore);
-const igService = new InstagramService();
-const metaService = new MetaService(igService);
-const igWebhookController = new MetaWebhookController(metaService);
+const recipeService = new RecipeService(recipeStore, userStore, recipeExtractor);
+const recipeController = new RecipeController(recipeService);
+const metaService = new MetaService(recipeService);
+const metaWebhookController = new MetaWebhookController(metaService);
 const recipeRouter = createRecipeRouter(recipeController, authMiddleware);
 const userRouter = createUserRouter(userController, authMiddleware);
-const webhookRouter = createWebhookRouter(igWebhookController);
+const webhookRouter = createWebhookRouter(metaWebhookController);
 
 // Middleware
 app.use(

@@ -231,24 +231,26 @@ const RecipeDetailPage: React.FC = () => {
                   <div className="w-100">
                     <div className="text-muted small">Original Recipe</div>
                     <div className="fw-bold text-truncate">
-                      <a
-                        href={recipe.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={recipe.link}
-                      >
-                        {(() => {
-                          try {
-                            const url = new URL(recipe.link);
-                            return url.hostname;
-                          } catch (e) {
-                            // Fallback to simple truncation if URL parsing fails
-                            return recipe.link.length > 25
-                              ? `${recipe.link.substring(0, 25)}...`
-                              : recipe.link;
-                          }
-                        })()}
-                      </a>
+                      {recipe.link.startsWith('https') && (
+                        <a
+                          href={recipe.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={recipe.link}
+                        >
+                          {(() => {
+                            try {
+                              const url = new URL(recipe.link);
+                              return url.hostname;
+                            } catch (e) {
+                              // Fallback to simple truncation if URL parsing fails
+                              return recipe.link.length > 25
+                                ? `${recipe.link.substring(0, 25)}...`
+                                : recipe.link;
+                            }
+                          })()}
+                        </a>
+                      )}
                     </div>
                   </div>
                 </Card.Body>

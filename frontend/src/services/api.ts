@@ -43,6 +43,14 @@ interface ApiErrorResponse {
   };
 }
 
+interface RecipeResponse {
+  recipe: Recipe;
+}
+
+interface RecipesResponse {
+  recipes: Recipe[];
+}
+
 // Add response interceptor to handle errors, but don't redirect to 404
 // Let the components handle specific status codes
 api.interceptors.response.use(
@@ -115,10 +123,10 @@ export const recipeApi = {
   // Get all recipes (with optional search query)
   getAll: async (query?: string): Promise<Recipe[]> => {
     try {
-      const response = await api.get<Recipe[]>('/recipes', {
+      const response = await api.get<RecipesResponse>('/recipes', {
         params: query ? { q: query } : undefined,
       });
-      return response.data;
+      return response.data.recipes;
     } catch (error) {
       console.error('Error fetching recipes:', error);
       throw error;
@@ -127,14 +135,20 @@ export const recipeApi = {
 
   // Get a single recipe by ID
   getById: async (id: string): Promise<Recipe> => {
-    const response = await api.get<Recipe>(`/recipes/${id}`);
-    return response.data;
+    const response = await api.get<RecipeResponse>(`/recipes/${id}`);
+    return response.data.recipe;
   },
 
   // Import a new recipe from URL
   import: async (recipeImport: RecipeImport): Promise<Recipe> => {
-    const response = await api.post<Recipe>('/recipes', recipeImport);
-    return response.data;
+    const response = await api.post<RecipeResponse>('/recipes', recipeImport);
+    return response.data.recipe;
+  },
+
+  // Add recipe to user's list
+  addToUserList: async (recipeUrl: string): Promise<Recipe> => {
+    const response = await api.post<RecipeResponse>('/recipes', { link: recipeUrl });
+    return response.data.recipe;
   },
 
   // Import a new recipe from file upload
@@ -145,26 +159,8 @@ export const recipeApi = {
         'Content-Type': 'multipart/form-data',
       },
     };
-    const response = await api.post<Recipe>('/recipes/upload', formData, config);
-    return response.data;
-  },
-
-  // Re-import a recipe from its original URL
-  reimport: async (id: string): Promise<Recipe> => {
-    const response = await api.post<Recipe>(`/recipes/${id}/import`);
-    return response.data;
-  },
-
-  // Update a recipe
-  update: async (id: string, recipe: Partial<Recipe>): Promise<Recipe> => {
-    const response = await api.put<Recipe>(`/recipes/${id}`, recipe);
-    return response.data;
-  },
-
-  // Add recipe to user's list
-  addToUserList: async (recipeUrl: string): Promise<Recipe> => {
-    const response = await api.post<Recipe>('/recipes', { link: recipeUrl });
-    return response.data;
+    const response = await api.post<RecipeResponse>('/recipes/upload', formData, config);
+    return response.data.recipe;
   },
 
   // Remove recipe from user's list
