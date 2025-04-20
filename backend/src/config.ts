@@ -27,8 +27,12 @@ export class Config {
     return origin.includes(',') ? origin.split(',').map(o => o.trim()) : origin;
   }
 
+  static get DATA_FOLDER(): string {
+    return process.env.DATA_FOLDER || path.join(__dirname, '../data');
+  }
+
   static get DB_PATH(): string {
-    return process.env.DB_PATH || path.join(__dirname, '../data/recipes.db');
+    return `${this.DATA_FOLDER}/recipes.db`;
   }
 
   static get LOG_LEVEL(): string {

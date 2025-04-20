@@ -1,14 +1,11 @@
-import ffmpeg from 'fluent-ffmpeg';
-import ffmpegStatic from 'ffmpeg-static';
 import { Logger } from '../../utils/logger';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 import FormData from 'form-data';
-
-// Set ffmpeg path
-ffmpeg.setFfmpegPath(ffmpegStatic as string);
+import { Config } from '../../config';
+import { randomUUID } from 'crypto';
+import { exec } from 'child_process';
 
 export class VideoService {
   private logger: Logger;
@@ -25,14 +22,9 @@ export class VideoService {
    * @returns URL of the uploaded image on Imgur
    */
   public async extractFirstFrameAndUploadToImgur(videoUrl: string): Promise<string> {
-    let tempDir = '';
-    let outputFile = '';
+    const outputFile = path.join(Config.DATA_FOLDER, `${randomUUID()}.jpg`);
 
     try {
-      // Create a temporary directory for the frame
-      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'video-frame-'));
-      outputFile = path.join(tempDir, 'first-frame.jpg');
-
       // Extract the first frame from the video
       await this.extractFirstFrame(videoUrl, outputFile);
 
@@ -53,9 +45,6 @@ export class VideoService {
         if (outputFile && fs.existsSync(outputFile)) {
           fs.unlinkSync(outputFile);
         }
-        if (tempDir && fs.existsSync(tempDir)) {
-          fs.rmdirSync(tempDir);
-        }
       } catch (cleanupError) {
         this.logger.warn('Error cleaning up temporary files', { cleanupError });
       }
@@ -70,36 +59,28 @@ export class VideoService {
    */
   private extractFirstFrame(videoUrl: string, outputPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      ffmpeg(videoUrl)
-        .inputOptions([
-          '-timeout',
-          '30000000', // Input timeout in microseconds
-          '-threads',
-          '1', // Limit threads to reduce memory usage
-        ])
-        .outputOptions([
-          '-frames:v',
-          '1', // Only extract one frame
-          '-q:v',
-          '2', // Quality setting (lower number = higher quality)
-        ])
-        .on('start', commandLine => {
-          this.logger.info('FFmpeg started with command:', { commandLine });
-        })
-        .on('error', (err: Error) => {
-          this.logger.error('Error extracting frame from video', { err, videoUrl });
-          reject(err);
-        })
-        .on('end', () => {
-          this.logger.info('Frame extracted successfully');
-          resolve();
-        })
-        .screenshots({
-          count: 1,
-          folder: path.dirname(outputPath),
-          filename: path.basename(outputPath),
-          timemarks: ['00:00:01'], // Take screenshot at 1 second
-        });
+      // Properly escape the URL for shell
+      const escapedUrl = `"${videoUrl.replace(/"/g, '\\"')}"`;
+
+      // Create the ffmpeg command
+      const command = `ffmpeg -ss 00:00:01 -i ${escapedUrl} -vframes 1 -y "${outputPath}"`;
+
+      this.logger.info('Executing ffmpeg command', { command });
+
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          this.logger.error('Error extracting frame from video', {
+            error,
+            videoUrl,
+            stderr,
+          });
+          reject(error);
+          return;
+        }
+
+        this.logger.info('Frame extracted successfully');
+        resolve();
+      });
     });
   }
 
@@ -113,6 +94,8 @@ export class VideoService {
       // Read the image file and convert to base64
       const imageBuffer = fs.readFileSync(imagePath);
       const base64Image = imageBuffer.toString('base64');
+
+      this.logger.info('Uploading image to Imgur', { imagePath, base64Image });
 
       // Create form data with form-data package
       const formData = new FormData();
