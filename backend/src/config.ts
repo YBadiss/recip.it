@@ -120,4 +120,12 @@ export class Config {
     }
     return clientId || '';
   }
+
+  static get TOTP_SECRET(): string {
+    const secret = process.env.TOTP_SECRET;
+    if (!secret) {
+      console.warn('TOTP_SECRET is not set in environment variables');
+    }
+    return secret || '';
+  }
 }

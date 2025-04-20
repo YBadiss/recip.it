@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { createRecipeRouter } from './routes/recipe.routes';
 import { createUserRouter } from './routes/user.routes';
 import { createWebhookRouter } from './routes/webhook.routes';
+import { createTestRouter } from './routes/test.routes';
 import { RecipeController } from './controllers/recipe-controller';
 import { UserController } from './controllers/user-controller';
 import { MetaWebhookController } from './controllers/webhooks/meta-webhook-controller';
@@ -72,6 +73,7 @@ const metaWebhookController = new MetaWebhookController(metaService);
 const recipeRouter = createRecipeRouter(recipeController, authMiddleware);
 const userRouter = createUserRouter(userController, authMiddleware);
 const webhookRouter = createWebhookRouter(metaWebhookController);
+const testRouter = createTestRouter();
 
 // Middleware
 app.use(
@@ -129,6 +131,7 @@ app.use(cookieParser()); // Parse cookies
 app.use('/recipes', recipeRouter);
 app.use('/users', userRouter);
 app.use('/webhooks', webhookRouter);
+app.use('/test', testRouter);
 
 // Root route for API health check
 app.get('/', (req, res) => {
