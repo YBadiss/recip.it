@@ -176,6 +176,11 @@ export class MetaService {
                       senderId,
                       `I've added this recipe to your collection: ${Config.RECIPE_URL_PREFIX}/${recipeId}`
                     );
+                  } else {
+                    await this.sendMessage(
+                      senderId,
+                      `Hey! I am the Reci'Pear! Share a recipe with me and I'll save it to https://recipit.me for you :)`
+                    );
                   }
                 }
               }
