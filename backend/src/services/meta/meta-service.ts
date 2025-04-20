@@ -112,7 +112,7 @@ export class MetaService {
         if (entry.messaging) {
           for (const messaging of entry.messaging) {
             const senderId = messaging.sender.id;
-
+            let hasSentAResponse = false;
             // Skip messages from our own user ID to prevent loops
             if (this.userIds.includes(senderId)) {
               this.logger.info('Ignoring message from our own user ID', { senderId });
@@ -127,6 +127,7 @@ export class MetaService {
                   this.logger.info('Processing attachment', { type: attachment.type });
 
                   if (attachment.type === 'ig_reel') {
+                    hasSentAResponse = true;
                     await this.sendMessage(
                       senderId,
                       `I am processing your reel. This may take a few seconds...`
@@ -165,6 +166,7 @@ export class MetaService {
                       );
                     }
                   } else if (attachment.type === 'fallback') {
+                    hasSentAResponse = true;
                     await this.sendMessage(
                       senderId,
                       `I am processing your content. This may take a few seconds...`
@@ -176,14 +178,16 @@ export class MetaService {
                       senderId,
                       `I've added this recipe to your collection: ${Config.RECIPE_URL_PREFIX}/${recipeId}`
                     );
-                  } else {
-                    await this.sendMessage(
-                      senderId,
-                      `Hey! I am the Reci'Pear! Share a recipe with me and I'll save it to https://recipit.me for you :)`
-                    );
                   }
                 }
               }
+            }
+
+            if (!hasSentAResponse) {
+              await this.sendMessage(
+                senderId,
+                `Hey! I am the Reci'Pear! Share a recipe with me and I'll save it to https://recipit.me for you :)`
+              );
             }
           }
         }
