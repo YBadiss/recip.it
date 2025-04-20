@@ -25,10 +25,13 @@ export class VideoService {
    * @returns URL of the uploaded image on Imgur
    */
   public async extractFirstFrameAndUploadToImgur(videoUrl: string): Promise<string> {
+    let tempDir = '';
+    let outputFile = '';
+
     try {
       // Create a temporary directory for the frame
-      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'video-frame-'));
-      const outputFile = path.join(tempDir, 'first-frame.jpg');
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'video-frame-'));
+      outputFile = path.join(tempDir, 'first-frame.jpg');
 
       // Extract the first frame from the video
       await this.extractFirstFrame(videoUrl, outputFile);
@@ -36,14 +39,26 @@ export class VideoService {
       // Upload the frame to Imgur
       const imgurUrl = await this.uploadToImgur(outputFile);
 
-      // Clean up temporary file
-      fs.unlinkSync(outputFile);
-      fs.rmdirSync(tempDir);
-
       return imgurUrl;
     } catch (error) {
-      this.logger.error('Error extracting and uploading video frame', { error });
+      this.logger.error('Error extracting and uploading video frame', {
+        error,
+        videoUrl,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
       throw error;
+    } finally {
+      // Clean up temporary files
+      try {
+        if (outputFile && fs.existsSync(outputFile)) {
+          fs.unlinkSync(outputFile);
+        }
+        if (tempDir && fs.existsSync(tempDir)) {
+          fs.rmdirSync(tempDir);
+        }
+      } catch (cleanupError) {
+        this.logger.warn('Error cleaning up temporary files', { cleanupError });
+      }
     }
   }
 
@@ -56,8 +71,23 @@ export class VideoService {
   private extractFirstFrame(videoUrl: string, outputPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
       ffmpeg(videoUrl)
+        .inputOptions([
+          '-timeout',
+          '30000000', // Input timeout in microseconds
+          '-threads',
+          '1', // Limit threads to reduce memory usage
+        ])
+        .outputOptions([
+          '-frames:v',
+          '1', // Only extract one frame
+          '-q:v',
+          '2', // Quality setting (lower number = higher quality)
+        ])
+        .on('start', commandLine => {
+          this.logger.info('FFmpeg started with command:', { commandLine });
+        })
         .on('error', (err: Error) => {
-          this.logger.error('Error extracting frame from video', { err });
+          this.logger.error('Error extracting frame from video', { err, videoUrl });
           reject(err);
         })
         .on('end', () => {

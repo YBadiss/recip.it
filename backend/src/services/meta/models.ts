@@ -13,6 +13,7 @@ interface MetaMessaging {
     mid: string;
     text?: string;
     attachments?: MetaAttachment[];
+    is_echo?: boolean;
   };
 }
 

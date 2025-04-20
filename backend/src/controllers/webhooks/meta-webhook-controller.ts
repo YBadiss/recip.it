@@ -1,8 +1,14 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import { Logger } from '../../utils/logger';
 import { Config } from '../../config';
 import { MetaService } from '../../services/meta/meta-service';
 import { MetaWebhookPayload } from '../../services/meta/models';
+
+// Extend the Express Request interface to include rawBody
+interface RequestWithRawBody extends Request {
+  rawBody: Buffer;
+}
 
 export class MetaWebhookController {
   private logger: Logger;
@@ -45,10 +51,14 @@ export class MetaWebhookController {
   public handleWebhook = async (req: Request, res: Response) => {
     try {
       // Verify the webhook payload signature
-      const isValid = this.metaService.verifySignature(req);
+      const isValid = this.verifySignature(req);
       if (!isValid) {
-        this.logger.error('Invalid webhook signature');
-        return res.status(401).json({ status: 'error', message: 'Invalid signature' });
+        if (Config.IS_PRODUCTION) {
+          this.logger.error('Invalid webhook signature');
+          return res.status(401).json({ status: 'error', message: 'Invalid signature' });
+        } else {
+          this.logger.error('Invalid webhook signature, but we are in dev mode');
+        }
       }
 
       // Log the incoming webhook payload
@@ -71,4 +81,57 @@ export class MetaWebhookController {
       }
     }
   };
+
+  /**
+   * Verify the webhook signature to ensure it's from Meta (Facebook/Instagram)
+   * @param req Request object containing payload and headers
+   * @returns boolean indicating if signature is valid
+   */
+  private verifySignature(req: Request): boolean {
+    try {
+      // Get the signature from the headers
+      const signature = req.headers['x-hub-signature-256'];
+      if (!signature || typeof signature !== 'string') {
+        this.logger.error('Missing signature header');
+        return false;
+      }
+
+      // Extract the signature value (remove 'sha256=' prefix)
+      const receivedSignature = signature.startsWith('sha256=')
+        ? signature.substring(7)
+        : signature;
+
+      // Get the raw request body (as Buffer)
+      const requestWithRawBody = req as RequestWithRawBody;
+      const rawBody = requestWithRawBody.rawBody;
+      if (!rawBody) {
+        this.logger.error('Raw body not available');
+        return false;
+      }
+
+      // Calculate expected signature
+      const expectedSignature = crypto
+        .createHmac('sha256', Config.META_APP_SECRET)
+        .update(rawBody)
+        .digest('hex');
+
+      // Compare signatures
+      const isValid = crypto.timingSafeEqual(
+        Buffer.from(receivedSignature),
+        Buffer.from(expectedSignature)
+      );
+
+      if (!isValid) {
+        this.logger.error('Signature mismatch', {
+          received: receivedSignature,
+          expected: expectedSignature,
+        });
+      }
+
+      return isValid;
+    } catch (error) {
+      this.logger.error('Error verifying signature', { error });
+      return false;
+    }
+  }
 }
