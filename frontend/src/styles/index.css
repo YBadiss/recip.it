@@ -187,6 +187,7 @@ a:hover {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
@@ -482,4 +483,188 @@ a:hover {
 
 h2:not(:first-child) {
   margin-top: 2.5rem;
+}
+
+/* Carousel navigation buttons */
+.carousel-container {
+  position: relative;
+  overflow: visible;
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.carousel-nav-btn {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  height: 50px;
+  width: 50px;
+  z-index: 10;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--card-background);
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  opacity: 0.9;
+  transition: all 0.2s ease-in-out;
+  border: 2px solid var(--primary-color);
+}
+
+.carousel-nav-btn i {
+  font-size: 1.5rem;
+}
+
+.carousel-nav-btn:hover {
+  background-color: var(--primary-color);
+  color: var(--light-text);
+  box-shadow: var(--shadow-md);
+}
+
+.carousel-nav-btn-left {
+  left: -70px;
+}
+
+.carousel-nav-btn-right {
+  right: -70px;
+}
+
+@media (max-width: 768px) {
+  .carousel-click-area {
+    width: 60px;
+  }
+
+  .carousel-click-area-left {
+    left: -60px;
+  }
+
+  .carousel-click-area-right {
+    right: -60px;
+  }
+
+  .carousel-nav-btn {
+    height: 40px;
+    width: 40px;
+  }
+
+  .carousel-nav-btn i {
+    font-size: 1.25rem;
+  }
+
+  .carousel-nav-btn-left {
+    left: -45px;
+  }
+
+  .carousel-nav-btn-right {
+    right: -45px;
+  }
+}
+
+/* Carousel click areas */
+.carousel-click-area {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100px;
+  z-index: 5;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.carousel-click-area:hover {
+  background-color: rgba(56, 178, 172, 0.05);
+}
+
+.carousel-click-area-left {
+  left: -100px;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+
+.carousel-click-area-right {
+  right: -100px;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+/* Show button hover styles when hovering over click areas */
+.carousel-click-area-left:hover + .carousel-nav-btn-left,
+.carousel-click-area-right:hover + .carousel-nav-btn-right {
+  background-color: var(--primary-color);
+  color: var(--light-text);
+  box-shadow: var(--shadow-md);
+}
+
+/* Header search bar */
+.header-search-container {
+  width: 300px;
+  transition: width 0.2s ease-in-out;
+}
+
+.search-bar-form {
+  width: 100%;
+}
+
+.search-bar-form .input-group {
+  border-radius: var(--radius-md);
+  background-color: rgba(255, 255, 255, 0.15);
+  transition: var(--transition-base);
+}
+
+.search-bar-form .input-group:focus-within {
+  background-color: white;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.search-bar-form .search-icon,
+.search-bar-form .clear-button {
+  background-color: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 0.4rem 0.65rem;
+  font-size: 0.85rem;
+}
+
+.search-bar-form .input-group:focus-within .search-icon,
+.search-bar-form .input-group:focus-within .clear-button {
+  color: var(--primary-color);
+}
+
+.search-bar-form .clear-button {
+  cursor: pointer;
+}
+
+.search-bar-form .clear-button:hover {
+  color: var(--light-text);
+}
+
+.search-bar-form .search-input {
+  border: none;
+  background-color: transparent;
+  color: white;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.6rem;
+  height: auto;
+}
+
+.search-bar-form .search-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.search-bar-form .input-group:focus-within .search-input {
+  color: var(--text-color);
+}
+
+.search-bar-form .input-group:focus-within .search-input::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 991px) {
+  .header-search-container {
+    width: 100%;
+    margin-bottom: 1rem;
+    order: 3;
+  }
 }

@@ -17,6 +17,22 @@ export interface Step {
   materials?: string[]; // Array of material IDs
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface GetAllRecipesParams {
+  query?: string;
+  userId?: string;
+  page?: number;
+  limit?: number;
+  inUserList?: boolean;
+}
+
 export interface Recipe {
   id?: string;
   title: string;

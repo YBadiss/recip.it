@@ -38,17 +38,39 @@ export class RecipeStore {
   }
 
   // Get all recipes with optional search parameters
-  async getAllRecipes(searchTerm?: string): Promise<Recipe[]> {
+  async getAllRecipes(
+    options: { searchTerm?: string; limit?: number; offset?: number } = {}
+  ): Promise<{ recipes: Recipe[]; total: number }> {
+    const { searchTerm, limit = 20, offset = 0 } = options;
+
     return new Promise((resolve, reject) => {
       if (searchTerm) {
-        this.searchRecipes(searchTerm).then(resolve).catch(reject);
+        this.searchRecipes(searchTerm, limit, offset).then(resolve).catch(reject);
       } else {
-        this.dbConnection.all('SELECT * FROM recipes ORDER BY updated_at DESC', (err, rows) => {
+        // First get the total count of recipes
+        this.dbConnection.get('SELECT COUNT(*) as total FROM recipes', (err, row) => {
           if (err) {
             reject(err);
             return;
           }
-          resolve(rows.map(row => this.parseRecipe(row as DbRow)));
+
+          const total = (row as { total: number }).total;
+
+          // Then get the paginated recipes
+          this.dbConnection.all(
+            'SELECT * FROM recipes ORDER BY updated_at DESC LIMIT ? OFFSET ?',
+            [limit, offset],
+            (err, rows) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve({
+                recipes: rows.map(row => this.parseRecipe(row as DbRow)),
+                total,
+              });
+            }
+          );
         });
       }
     });
@@ -207,7 +229,11 @@ export class RecipeStore {
   }
 
   // Function to search recipes
-  async searchRecipes(query: string): Promise<Recipe[]> {
+  async searchRecipes(
+    query: string,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<{ recipes: Recipe[]; total: number }> {
     return new Promise((resolve, reject) => {
       // Remove common stop words and punctuation from the query
       const cleanQuery = query
@@ -217,26 +243,201 @@ export class RecipeStore {
         .filter(word => word.length > 1) // Filter out single characters
         .join(' ');
 
-      this.dbConnection.all(
-        `
-        SELECT * FROM recipes 
-        WHERE search_text LIKE ?
-        ORDER BY 
-          -- Boost exact matches in title
-          CASE WHEN title LIKE ? THEN 3
-          -- Boost partial matches in title
-          WHEN title LIKE ? THEN 2
-          -- Everything else
-          ELSE 1 END DESC,
-          updated_at DESC
-      `,
-        [`%${cleanQuery}%`, `${query}`, `%${query}%`],
-        (err, rows) => {
+      // First get the total count of matching recipes
+      this.dbConnection.get(
+        `SELECT COUNT(*) as total FROM recipes WHERE search_text LIKE ?`,
+        [`%${cleanQuery}%`],
+        (err, row) => {
           if (err) {
             reject(err);
             return;
           }
-          resolve(rows.map(row => this.parseRecipe(row as DbRow)));
+
+          const total = (row as { total: number }).total;
+
+          // Then get the paginated results
+          this.dbConnection.all(
+            `
+            SELECT * FROM recipes 
+            WHERE search_text LIKE ?
+            ORDER BY 
+              -- Boost exact matches in title
+              CASE WHEN title LIKE ? THEN 3
+              -- Boost partial matches in title
+              WHEN title LIKE ? THEN 2
+              -- Everything else
+              ELSE 1 END DESC,
+              updated_at DESC
+            LIMIT ? OFFSET ?
+          `,
+            [`%${cleanQuery}%`, `${query}`, `%${query}%`, limit, offset],
+            (err, rows) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve({
+                recipes: rows.map(row => this.parseRecipe(row as DbRow)),
+                total,
+              });
+            }
+          );
+        }
+      );
+    });
+  }
+
+  // Get recipes with user ownership filter
+  async getRecipesWithUserFilter(options: {
+    searchTerm?: string;
+    limit?: number;
+    offset?: number;
+    userId?: string;
+    inUserList?: boolean;
+  }): Promise<{ recipes: Recipe[]; total: number }> {
+    const { searchTerm, limit = 20, offset = 0, userId, inUserList } = options;
+
+    return new Promise((resolve, reject) => {
+      const baseQuery = 'SELECT r.* FROM recipes r';
+      const countQuery = 'SELECT COUNT(*) as total FROM recipes r';
+      let joinClause = '';
+      let whereClause = 'WHERE 1=1'; // Start with a clause that's always true
+      const params: unknown[] = [];
+      const countParams: unknown[] = [];
+
+      // Handle user filter
+      if (userId && inUserList !== undefined) {
+        if (inUserList) {
+          joinClause = 'INNER JOIN user_recipes ur ON r.id = ur.recipe_id';
+          whereClause += ' AND ur.user_id = ?';
+          params.push(userId);
+          countParams.push(userId);
+        } else {
+          // Find recipes NOT in the user's list
+          joinClause = 'LEFT JOIN user_recipes ur ON r.id = ur.recipe_id AND ur.user_id = ?';
+          whereClause += ' AND ur.recipe_id IS NULL';
+          params.push(userId); // For the join condition
+          countParams.push(userId);
+        }
+      }
+
+      // Handle search term filter
+      let orderByClause = 'ORDER BY r.updated_at DESC';
+      if (searchTerm) {
+        // Clean the query
+        const cleanQuery = searchTerm
+          .toLowerCase()
+          .replace(/[^\w\s]/g, '')
+          .split(' ')
+          .filter(word => word.length > 1)
+          .join(' ');
+
+        whereClause += ' AND r.search_text LIKE ?';
+        params.push(`%${cleanQuery}%`);
+        countParams.push(`%${cleanQuery}%`);
+
+        // Add ranking for search results
+        orderByClause = `ORDER BY 
+          CASE WHEN r.title LIKE ? THEN 3
+          WHEN r.title LIKE ? THEN 2
+          ELSE 1 END DESC,
+          r.updated_at DESC`;
+        params.push(`${searchTerm}`); // Exact title match highest rank
+        params.push(`%${searchTerm}%`); // Partial title match medium rank
+      }
+
+      // Combine query parts
+      const fullQuery = `${baseQuery} ${joinClause} ${whereClause} ${orderByClause} LIMIT ? OFFSET ?`;
+      const fullCountQuery = `${countQuery} ${joinClause} ${whereClause}`;
+
+      // Add limit and offset to params for the main query
+      params.push(limit, offset);
+
+      // First get total count
+      this.dbConnection.get(fullCountQuery, countParams, (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        const total = (row as { total: number }).total;
+
+        // Then get paginated results
+        this.dbConnection.all(fullQuery, params, (err, rows) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          resolve({
+            recipes: rows.map(row => this.parseRecipe(row as DbRow)),
+            total,
+          });
+        });
+      });
+    });
+  }
+
+  // Search recipes with user filter
+  async searchRecipesWithUserFilter(
+    query: string,
+    userId: string,
+    inUserList: boolean,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<{ recipes: Recipe[]; total: number }> {
+    return new Promise((resolve, reject) => {
+      // Clean the query as usual
+      const cleanQuery = query
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .split(' ')
+        .filter(word => word.length > 1)
+        .join(' ');
+
+      // Build the filter clause based on inUserList
+      const filterClause = inUserList
+        ? 'INNER JOIN user_recipes ur ON r.id = ur.recipe_id AND ur.user_id = ?'
+        : 'LEFT JOIN user_recipes ur ON r.id = ur.recipe_id AND ur.user_id = ? WHERE ur.recipe_id IS NULL';
+
+      // Get total count first
+      this.dbConnection.get(
+        `SELECT COUNT(*) as total FROM recipes r 
+        ${filterClause}
+        AND r.search_text LIKE ?`,
+        [userId, `%${cleanQuery}%`],
+        (err, row) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          const total = (row as { total: number }).total;
+
+          // Then get the paginated results with search ranking
+          this.dbConnection.all(
+            `SELECT r.* FROM recipes r 
+            ${filterClause}
+            AND r.search_text LIKE ?
+            ORDER BY 
+              CASE WHEN r.title LIKE ? THEN 3
+              WHEN r.title LIKE ? THEN 2
+              ELSE 1 END DESC,
+              r.updated_at DESC
+            LIMIT ? OFFSET ?`,
+            [userId, `%${cleanQuery}%`, `${query}`, `%${query}%`, limit, offset],
+            (err, rows) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+
+              resolve({
+                recipes: rows.map(row => this.parseRecipe(row as DbRow)),
+                total,
+              });
+            }
+          );
         }
       );
     });

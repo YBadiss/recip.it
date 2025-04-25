@@ -1,13 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navbar, Container, Nav, Button, Image, NavDropdown } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import SearchBar from './SearchBar';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
   const [isHidden, setIsHidden] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+
+  const updateUrlTimeout = useRef<number | null>(null); // Ref for debounce timer
 
   useEffect(() => {
     const handleScroll = () => {
@@ -45,6 +50,50 @@ const Header: React.FC = () => {
     navigate('/add');
   };
 
+  // Helper to update search params
+  const updateSearchParams = (query: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (query) {
+      params.set('q', query);
+    } else {
+      params.delete('q');
+    }
+    // Use replace: true to avoid bloating browser history during typing
+    setSearchParams(params, { replace: true });
+  };
+
+  // Update URL when search is explicitly submitted
+  const handleSearchSubmit = (query: string) => {
+    // Clear pending debounce timer
+    if (updateUrlTimeout.current) {
+      clearTimeout(updateUrlTimeout.current);
+      updateUrlTimeout.current = null;
+    }
+
+    updateSearchParams(query); // Update URL immediately
+
+    // Always navigate to home page when searching from other pages
+    if (window.location.pathname !== '/') {
+      navigate(`/?q=${encodeURIComponent(query)}`);
+    }
+  };
+
+  // Handle real-time search updates from SearchBar input change
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    // Don't dispatch event, just update local state and debounce URL update
+
+    // Debounce the URL update
+    if (updateUrlTimeout.current) {
+      clearTimeout(updateUrlTimeout.current);
+    }
+
+    updateUrlTimeout.current = window.setTimeout(() => {
+      updateSearchParams(query);
+      updateUrlTimeout.current = null;
+    }, 200); // 50ms debounce for URL update
+  };
+
   return (
     <header className={`header-container ${isHidden ? 'header-hidden' : ''}`}>
       <Navbar expand="lg" variant="dark" className="py-0">
@@ -61,11 +110,19 @@ const Header: React.FC = () => {
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
-            <Nav className="me-auto">
+            <Nav className="me-auto d-none d-lg-flex">
               <span className="nav-tagline text-light d-flex align-items-center">
                 Your personal recipe collection app
               </span>
             </Nav>
+
+            <div className="header-search-container me-3 d-flex">
+              <SearchBar
+                onSearch={handleSearch} // Updates local state & debounces URL update
+                onSubmit={handleSearchSubmit} // Updates URL immediately
+                initialValue={searchQuery}
+              />
+            </div>
 
             <Button
               variant="primary"

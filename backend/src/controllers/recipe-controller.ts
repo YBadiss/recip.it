@@ -16,14 +16,60 @@ export class RecipeController {
 
   // Get all recipes for the current user
   getAllRecipes = async (req: Request, res: Response): Promise<void> => {
+    this.logger.info('Getting all recipes', { query: req.query, userId: req.user?.userId });
     try {
-      const { q } = req.query;
-      const recipes = await this.recipeService.getAllRecipes({
-        query: q as string | undefined,
+      const { query, page, limit, inUserList } = req.query;
+
+      // Parse pagination parameters with defaults
+      const pageNum = page ? parseInt(page as string, 10) : 1;
+      const limitNum = limit ? parseInt(limit as string, 10) : 20;
+
+      // Validation
+      if (isNaN(pageNum) || pageNum < 1) {
+        this.logger.info('Invalid page parameter', { page });
+        res.status(400).json({ error: 'Page must be a positive number' });
+        return;
+      }
+
+      if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+        this.logger.info('Invalid limit parameter', { limit });
+        res.status(400).json({ error: 'Limit must be between 1 and 100' });
+        return;
+      }
+
+      // Parse inUserList filter if provided
+      let inUserListFilter: boolean | undefined = undefined;
+      if (inUserList !== undefined) {
+        // Accept both string and boolean values in the query
+        if (typeof inUserList === 'string') {
+          inUserListFilter = inUserList.toLowerCase() === 'true';
+        } else if (typeof inUserList === 'boolean') {
+          inUserListFilter = inUserList;
+        }
+      }
+
+      this.logger.info('Fetching recipes with filters', {
+        query,
         userId: req.user?.userId,
+        page: pageNum,
+        limit: limitNum,
+        inUserList: inUserListFilter,
       });
 
-      res.json({ recipes });
+      const paginatedRecipes = await this.recipeService.getAllRecipes({
+        query: query as string | undefined,
+        userId: req.user?.userId,
+        page: pageNum,
+        limit: limitNum,
+        inUserList: inUserListFilter,
+      });
+
+      this.logger.info('Successfully fetched recipes', {
+        count: paginatedRecipes.items.length,
+        total: paginatedRecipes.total,
+      });
+
+      res.json(paginatedRecipes);
     } catch (error) {
       this.logger.error('Error fetching recipes', { error });
       res.status(500).json({
@@ -35,10 +81,12 @@ export class RecipeController {
 
   // Get a single recipe by ID
   getRecipeById = async (req: Request, res: Response): Promise<void> => {
+    this.logger.info('Getting recipe by ID', { recipeId: req.params.id, userId: req.user?.userId });
     try {
       const { id } = req.params;
 
       if (!id) {
+        this.logger.info('Missing recipe ID parameter');
         res.status(400).json({ error: 'Recipe ID is required' });
         return;
       }
@@ -46,10 +94,12 @@ export class RecipeController {
       const recipe = await this.recipeService.getRecipeById(id, req.user?.userId);
 
       if (!recipe) {
+        this.logger.info('Recipe not found', { recipeId: id });
         res.status(404).json({ error: 'Recipe not found' });
         return;
       }
 
+      this.logger.info('Successfully fetched recipe', { recipeId: id, title: recipe.title });
       res.json({ recipe });
     } catch (error) {
       this.logger.error('Error fetching recipe', { error, recipeId: req.params.id });
@@ -62,20 +112,32 @@ export class RecipeController {
 
   // Create a new recipe
   createRecipeFromLink = async (req: Request, res: Response): Promise<void> => {
+    this.logger.info('Creating recipe from link', {
+      link: req.body.link,
+      userId: req.user?.userId,
+    });
     try {
       const recipeData = req.body;
 
       // Basic validation
       if (!recipeData.link) {
+        this.logger.info('Missing recipe link in request');
         res.status(400).json({ error: 'Recipe must have a link' });
         return;
       }
 
       try {
+        this.logger.info('Processing recipe link', { link: recipeData.link });
         const recipe = await this.recipeService.addRecipeFromLink(
           recipeData.link,
           req.user?.userId
         );
+
+        this.logger.info('Successfully created recipe from link', {
+          recipeId: recipe.id,
+          title: recipe.title,
+          link: recipeData.link,
+        });
 
         res.status(200).json({ recipe });
       } catch (error) {
@@ -96,15 +158,22 @@ export class RecipeController {
 
   // Re-import a recipe from its original link
   reimportRecipe = async (req: Request, res: Response): Promise<void> => {
+    this.logger.info('Reimporting recipe', { recipeId: req.params.id, userId: req.user?.userId });
     try {
       const { id } = req.params;
 
       if (!id) {
+        this.logger.info('Missing recipe ID parameter');
         res.status(400).json({ error: 'Recipe ID is required' });
         return;
       }
 
       const updatedRecipe = await this.recipeService.reimportRecipe(id);
+      this.logger.info('Successfully reimported recipe', {
+        recipeId: id,
+        title: updatedRecipe.title,
+      });
+
       res.json(updatedRecipe);
     } catch (error) {
       this.logger.error('Error reimporting recipe', { error, recipeId: req.params.id });
@@ -128,20 +197,32 @@ export class RecipeController {
 
   // Remove a recipe from user's collection
   removeRecipe = async (req: Request, res: Response): Promise<void> => {
+    this.logger.info('Removing recipe from user collection', {
+      recipeId: req.params.id,
+      userId: req.user?.userId,
+    });
+
     try {
       const { id } = req.params;
 
       if (!id) {
+        this.logger.info('Missing recipe ID parameter');
         res.status(400).json({ error: 'Recipe ID is required' });
         return;
       }
 
       if (!req.user?.userId) {
+        this.logger.info('Unauthorized request - missing user ID');
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
 
       await this.recipeService.removeRecipeFromUserCollection(req.user.userId, id);
+      this.logger.info('Successfully removed recipe from collection', {
+        recipeId: id,
+        userId: req.user.userId,
+      });
+
       res.json({ message: 'Recipe removed from your collection' });
     } catch (error) {
       this.logger.error('Error removing recipe', {
@@ -163,19 +244,20 @@ export class RecipeController {
 
   // Delete a recipe completely from the database
   deleteRecipe = async (req: Request, res: Response): Promise<void> => {
+    this.logger.info('Deleting recipe', { recipeId: req.params.id, userId: req.user?.userId });
     try {
       const { id } = req.params;
 
       if (!id) {
+        this.logger.info('Missing recipe ID parameter');
         res.status(400).json({ error: 'Recipe ID is required' });
         return;
       }
 
-      const deletedId = await this.recipeService.deleteRecipe(id);
-      res.json({
-        message: 'Recipe deleted successfully',
-        recipeId: deletedId,
-      });
+      await this.recipeService.deleteRecipe(id);
+      this.logger.info('Successfully deleted recipe', { recipeId: id });
+
+      res.json({ message: 'Recipe deleted successfully' });
     } catch (error) {
       this.logger.error('Error deleting recipe', { error, recipeId: req.params.id });
 
@@ -190,32 +272,57 @@ export class RecipeController {
     }
   };
 
-  // Upload a recipe from a file
+  // Create a recipe from uploaded file
   createRecipeFromFile = async (req: Request, res: Response): Promise<void> => {
-    if (!req.file) {
-      res.status(400).json({ error: 'No file uploaded' });
-      return;
-    }
+    this.logger.info('Creating recipe from file upload', {
+      filename: req.file?.originalname,
+      userId: req.user?.userId,
+    });
 
-    let processedFile: RecipeFile;
     try {
-      // Process the uploaded file
-      processedFile = await this.fileProcessor.processFile(req.file);
-    } catch (fileError) {
-      res.status(400).json({
-        error: fileError instanceof Error ? fileError.message : 'Error processing file',
+      if (!req.file) {
+        this.logger.info('Missing file in request');
+        res.status(400).json({ error: 'Please upload a recipe file' });
+        return;
+      }
+
+      // Process file based on its mimetype
+      let recipeFile: RecipeFile;
+
+      this.logger.info('Processing uploaded file', {
+        mimetype: req.file.mimetype,
+        size: req.file.size,
       });
-      return;
-    }
 
-    try {
-      const recipe = await this.recipeService.addRecipeFromFile(processedFile, req.user?.userId);
+      try {
+        recipeFile = await this.fileProcessor.processFile(req.file);
+      } catch (error) {
+        this.logger.error('Error processing file', { error, filename: req.file.originalname });
+        res.status(400).json({
+          error: 'Failed to process file',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        });
+        return;
+      }
 
-      res.status(200).json({ recipe });
+      // Create recipe from processed file
+      const recipe = await this.recipeService.addRecipeFromFile(recipeFile, req.user?.userId);
+
+      this.logger.info('Successfully created recipe from file', {
+        recipeId: recipe.id,
+        title: recipe.title,
+        filename: req.file.originalname,
+      });
+
+      res.status(201).json({ recipe });
     } catch (error) {
-      this.logger.error('Error processing recipe', { error });
-      res.status(400).json({
-        error: 'Failed to process recipe',
+      this.logger.error('Error creating recipe from file', {
+        error,
+        filename: req.file?.originalname,
+      });
+
+      res.status(500).json({
+        error: 'Failed to create recipe from file',
         details: error instanceof Error ? error.message : 'Unknown error',
       });
     }

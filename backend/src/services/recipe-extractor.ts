@@ -7,6 +7,7 @@ import {
   ChatCompletionContentPartText,
   ChatCompletionContentPartImage,
 } from 'openai/resources/chat/completions';
+import { Logger } from '../utils/logger';
 
 // Interface for extracted recipe - aligned with Recipe model
 export interface ExtractedRecipe {
@@ -35,33 +36,67 @@ export interface IRecipeExtractor {
 export class RecipeExtractor implements IRecipeExtractor {
   private openai: OpenAI;
   private fetchers: ContentFetcher[];
+  private logger: Logger;
 
   constructor(openai: OpenAI, fetchers: ContentFetcher[]) {
     this.openai = openai;
     this.fetchers = fetchers;
+    this.logger = Logger.forContext('RecipeExtractor');
   }
 
   async extractRecipeFromUrl(url: string): Promise<ExtractedRecipe> {
-    const content = await this.fetchRecipeContent(url);
-    return this.extractRecipeFromContent(
-      url,
-      content.imageUrl,
-      content.userContext,
-      content.systemContext,
-      content.text
-    );
+    this.logger.info('Extracting recipe from URL', { url });
+
+    try {
+      const content = await this.fetchRecipeContent(url);
+      this.logger.info('Successfully fetched content from URL', {
+        url,
+        hasText: !!content.text,
+        hasImage: !!content.imageUrl,
+      });
+
+      return this.extractRecipeFromContent(
+        url,
+        content.imageUrl,
+        content.userContext,
+        content.systemContext,
+        content.text
+      );
+    } catch (error) {
+      this.logger.error('Failed to extract recipe from URL', { error, url });
+      throw error;
+    }
   }
 
   // Function to fetch the content of a recipe URL
   private async fetchRecipeContent(url: string): Promise<RecipeContent> {
+    this.logger.info('Fetching content from URL', { url });
+
     // Find the appropriate fetcher for this URL
     for (const fetcher of this.fetchers) {
       if (fetcher.canFetchContent(url)) {
-        return await fetcher.fetchContent(url);
+        this.logger.info('Found compatible content fetcher', {
+          url,
+          fetcher: fetcher.constructor.name,
+        });
+
+        try {
+          const content = await fetcher.fetchContent(url);
+          this.logger.info('Content fetched successfully', {
+            url,
+            contentLength: content.text?.length || 0,
+            hasImage: !!content.imageUrl,
+          });
+          return content;
+        } catch (error) {
+          this.logger.error('Failed to fetch content', { error, url });
+          throw error;
+        }
       }
     }
 
     // If no fetcher was found (should never happen with proper configuration)
+    this.logger.error('No compatible content fetcher found', { url });
     throw new Error(`No content fetcher available for URL: ${url}`);
   }
 
@@ -74,6 +109,14 @@ export class RecipeExtractor implements IRecipeExtractor {
     textContent?: string,
     imageContent?: string
   ): Promise<ExtractedRecipe> {
+    this.logger.info('Extracting recipe from content', {
+      url,
+      hasText: !!textContent,
+      hasImage: !!imageContent || !!imageUrl,
+      hasUserContext: !!userContext,
+      hasSystemContext: !!systemContext,
+    });
+
     const systemMessage: ChatCompletionMessageParam = {
       role: 'system',
       content: `You are a recipe extraction expert. Extract the following from the recipe content:
@@ -151,7 +194,10 @@ Be accurate and comprehensive in your extraction. If certain information is clea
 
     const messages: ChatCompletionMessageParam[] = [systemMessage, userMessage];
 
-    console.log(messages);
+    this.logger.info('Sending request to OpenAI', {
+      model: Config.OPENAI_MODEL,
+      contentPartsCount: contentParts.length,
+    });
 
     try {
       const response = await this.openai.chat.completions.create({
@@ -160,23 +206,46 @@ Be accurate and comprehensive in your extraction. If certain information is clea
         response_format: { type: 'json_object' },
       });
 
-      console.log(response.choices[0].message.content);
+      this.logger.info('Received response from OpenAI', {
+        promptTokens: response.usage?.prompt_tokens,
+        completionTokens: response.usage?.completion_tokens,
+        totalTokens: response.usage?.total_tokens,
+      });
 
-      const result = JSON.parse(response.choices[0].message.content || '{}');
+      const resultContent = response.choices[0].message.content || '{}';
 
-      // Ensure all required fields are present with proper structure
-      return {
-        title: result.title || 'Untitled Recipe',
-        ingredients: Array.isArray(result.ingredients) ? result.ingredients : [],
-        materials: Array.isArray(result.materials) ? result.materials : [],
-        steps: Array.isArray(result.steps) ? result.steps : [],
-        tags: Array.isArray(result.tags) ? result.tags : [],
-        imageUrl: imageUrl || '',
-        cookingTime: result.cookingTime || '',
-        servings: result.servings || 0,
-      };
+      try {
+        const result = JSON.parse(resultContent);
+
+        // Log the extracted recipe details
+        this.logger.info('Successfully parsed recipe details', {
+          title: result.title,
+          ingredientsCount: result.ingredients?.length || 0,
+          materialsCount: result.materials?.length || 0,
+          stepsCount: result.steps?.length || 0,
+          tagsCount: result.tags?.length || 0,
+        });
+
+        // Ensure all required fields are present with proper structure
+        return {
+          title: result.title || 'Untitled Recipe',
+          ingredients: Array.isArray(result.ingredients) ? result.ingredients : [],
+          materials: Array.isArray(result.materials) ? result.materials : [],
+          steps: Array.isArray(result.steps) ? result.steps : [],
+          tags: Array.isArray(result.tags) ? result.tags : [],
+          imageUrl: imageUrl || '',
+          cookingTime: result.cookingTime || '',
+          servings: result.servings || 0,
+        };
+      } catch (parseError) {
+        this.logger.error('Failed to parse OpenAI response as JSON', {
+          error: parseError,
+          response: resultContent.substring(0, 100) + '...',
+        });
+        throw new Error('Failed to parse recipe details from OpenAI response');
+      }
     } catch (error) {
-      console.error('Error extracting recipe details with OpenAI:', error);
+      this.logger.error('Error extracting recipe details with OpenAI', { error });
       throw new Error(
         'Failed to extract recipe details: ' +
           (error instanceof Error ? error.message : 'Unknown error')

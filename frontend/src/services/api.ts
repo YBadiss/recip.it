@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Recipe, RecipeImport } from '../types/recipe';
+import { Recipe, RecipeImport, PaginatedResponse, GetAllRecipesParams } from '../types/recipe';
 import { LoginCredentials, RegisterData, User, UserResponse } from '../types/user';
 
 // Use environment variable with fallback
@@ -47,9 +47,7 @@ interface RecipeResponse {
   recipe: Recipe;
 }
 
-interface RecipesResponse {
-  recipes: Recipe[];
-}
+interface RecipesResponse extends PaginatedResponse<Recipe> {}
 
 // Add response interceptor to handle errors, but don't redirect to 404
 // Let the components handle specific status codes
@@ -120,13 +118,11 @@ export const authApi = {
 
 // API functions for recipes
 export const recipeApi = {
-  // Get all recipes (with optional search query)
-  getAll: async (query?: string): Promise<Recipe[]> => {
+  // Get all recipes with optional params (search query, pagination, etc.)
+  getAll: async (params?: GetAllRecipesParams): Promise<PaginatedResponse<Recipe>> => {
     try {
-      const response = await api.get<RecipesResponse>('/recipes', {
-        params: query ? { q: query } : undefined,
-      });
-      return response.data.recipes;
+      const response = await api.get<RecipesResponse>('/recipes', { params });
+      return response.data;
     } catch (error) {
       console.error('Error fetching recipes:', error);
       throw error;
