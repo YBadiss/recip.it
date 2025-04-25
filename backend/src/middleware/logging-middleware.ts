@@ -1,15 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
+import { Logger } from '../utils/logger';
 
 /**
  * Middleware to log all API requests and responses
  */
 export class LoggingMiddleware {
+  private logger: Logger;
+
+  constructor() {
+    this.logger = Logger.forContext('HttpMiddleware');
+  }
+
   /**
    * Log request and response details
    */
   logRequest = (req: Request, res: Response, next: NextFunction): void => {
     const startTime = Date.now();
     const requestId = Math.random().toString(36).substring(2, 15);
+    const logger = this.logger;
 
     // Log request details
     const requestLog = {
@@ -25,7 +33,7 @@ export class LoggingMiddleware {
       user: req.user?.userId || 'anonymous',
     };
 
-    console.log(`[REQUEST ${requestId}]`, JSON.stringify(requestLog, null, 2));
+    logger.info(`Request ${requestId}`, requestLog);
 
     // Capture and log response
     const originalSend = res.send;
@@ -47,7 +55,7 @@ export class LoggingMiddleware {
             : '[Response body too large to log]',
       };
 
-      console.log(`[RESPONSE ${requestId}]`, JSON.stringify(responseLog, null, 2));
+      logger.info(`Response ${requestId}`, responseLog);
 
       // Call the original send function
       return originalSend.call(this, body);

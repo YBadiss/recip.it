@@ -18,6 +18,10 @@ import OpenAI from 'openai';
 import { Config } from './config';
 import { YouTubeContentFetcher, WebContentFetcher } from './services/content-fetcher';
 import { RecipeService } from './services/recipe-service';
+import { Logger } from './utils/logger';
+
+// Create a logger for the application
+const logger = Logger.forContext('App');
 
 // Create Express app
 const app = express();
@@ -33,10 +37,10 @@ if (!fs.existsSync(dir)) {
 // Initialize the database
 initDatabase(dbPath)
   .then(() => {
-    console.log('Database initialized successfully');
+    logger.info('Database initialized successfully');
   })
   .catch(err => {
-    console.error('Database initialization failed:', err);
+    logger.error('Database initialization failed:', { error: err });
     process.exit(1);
   });
 
@@ -131,6 +135,6 @@ app.get('/', (req, res) => {
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:${PORT}`);
-  console.log(`API documentation available at http://localhost:${PORT}/`);
+  logger.info(`Server is running at http://localhost:${PORT}`, { port: PORT });
+  logger.info(`API documentation available at http://localhost:${PORT}/`, { port: PORT });
 });

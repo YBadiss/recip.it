@@ -1,14 +1,17 @@
 import { Request, Response } from 'express';
 import { FileProcessor, RecipeFile } from '../services/file-processor';
 import { RecipeService } from '../services/recipe-service';
+import { Logger } from '../utils/logger';
 
 export class RecipeController {
   private recipeService: RecipeService;
   private fileProcessor: FileProcessor;
+  private logger: Logger;
 
   constructor(recipeService: RecipeService) {
     this.recipeService = recipeService;
     this.fileProcessor = new FileProcessor();
+    this.logger = Logger.forContext('RecipeController');
   }
 
   // Get all recipes for the current user
@@ -22,7 +25,7 @@ export class RecipeController {
 
       res.json({ recipes });
     } catch (error) {
-      console.error('Error fetching recipes:', error);
+      this.logger.error('Error fetching recipes', { error });
       res.status(500).json({
         error: 'Failed to fetch recipes',
         details: error instanceof Error ? error.message : 'Unknown error',
@@ -49,7 +52,7 @@ export class RecipeController {
 
       res.json({ recipe });
     } catch (error) {
-      console.error('Error fetching recipe:', error);
+      this.logger.error('Error fetching recipe', { error, recipeId: req.params.id });
       res.status(500).json({
         error: 'Failed to fetch recipe',
         details: error instanceof Error ? error.message : 'Unknown error',
@@ -76,14 +79,14 @@ export class RecipeController {
 
         res.status(200).json({ recipe });
       } catch (error) {
-        console.error('Error processing recipe:', error);
+        this.logger.error('Error processing recipe', { error, link: recipeData.link });
         res.status(400).json({
           error: 'Failed to process recipe',
           details: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     } catch (error) {
-      console.error('Error creating recipe:', error);
+      this.logger.error('Error creating recipe', { error });
       res.status(500).json({
         error: 'Failed to create recipe',
         details: error instanceof Error ? error.message : 'Unknown error',
@@ -104,7 +107,7 @@ export class RecipeController {
       const updatedRecipe = await this.recipeService.reimportRecipe(id);
       res.json(updatedRecipe);
     } catch (error) {
-      console.error('Error reimporting recipe:', error);
+      this.logger.error('Error reimporting recipe', { error, recipeId: req.params.id });
 
       if (
         error instanceof Error &&
@@ -141,7 +144,11 @@ export class RecipeController {
       await this.recipeService.removeRecipeFromUserCollection(req.user.userId, id);
       res.json({ message: 'Recipe removed from your collection' });
     } catch (error) {
-      console.error('Error removing recipe:', error);
+      this.logger.error('Error removing recipe', {
+        error,
+        recipeId: req.params.id,
+        userId: req.user?.userId,
+      });
 
       if (error instanceof Error && error.message === 'Recipe not found in user collection') {
         res.status(404).json({ error: 'Recipe not found' });
@@ -170,7 +177,7 @@ export class RecipeController {
         recipeId: deletedId,
       });
     } catch (error) {
-      console.error('Error deleting recipe:', error);
+      this.logger.error('Error deleting recipe', { error, recipeId: req.params.id });
 
       if (error instanceof Error && error.message === 'Recipe not found') {
         res.status(404).json({ error: 'Recipe not found' });
@@ -206,7 +213,7 @@ export class RecipeController {
 
       res.status(200).json({ recipe });
     } catch (error) {
-      console.error('Error processing recipe:', error);
+      this.logger.error('Error processing recipe', { error });
       res.status(400).json({
         error: 'Failed to process recipe',
         details: error instanceof Error ? error.message : 'Unknown error',

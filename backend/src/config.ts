@@ -1,8 +1,12 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { Logger } from './utils/logger';
 
 // Load environment variables
 dotenv.config();
+
+// Create a logger for config
+const logger = Logger.forContext('Config');
 
 export class Config {
   static get NODE_ENV(): string {
@@ -42,7 +46,7 @@ export class Config {
   static get OPENAI_API_KEY(): string {
     const key = process.env.OPENAI_API_KEY;
     if (!key) {
-      console.warn('OPENAI_API_KEY is not set in environment variables');
+      logger.warn('OPENAI_API_KEY is not set in environment variables');
     }
     return key || '';
   }
@@ -54,7 +58,7 @@ export class Config {
   static get SUPADATA_API_KEY(): string {
     const key = process.env.SUPADATA_API_KEY;
     if (!key) {
-      console.warn('SUPADATA_API_KEY is not set in environment variables');
+      logger.warn('SUPADATA_API_KEY is not set in environment variables');
     }
     return key || '';
   }
@@ -62,9 +66,12 @@ export class Config {
   static get JWT_SECRET(): string {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
-      console.warn('JWT_SECRET is not set in environment variables');
+      logger.error('JWT_SECRET is not set in environment variables');
+      throw new Error(
+        'JWT_SECRET is required to run the application. Set it in your environment variables.'
+      );
     }
-    return secret || 'default-jwt-secret-key-for-development-only';
+    return secret;
   }
 
   static get JWT_EXPIRATION(): string {
@@ -82,7 +89,7 @@ export class Config {
   static get IMGUR_CLIENT_ID(): string {
     const clientId = process.env.IMGUR_CLIENT_ID;
     if (!clientId) {
-      console.warn('IMGUR_CLIENT_ID is not set in environment variables');
+      logger.warn('IMGUR_CLIENT_ID is not set in environment variables');
     }
     return clientId || '';
   }

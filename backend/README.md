@@ -49,6 +49,7 @@ npm install
 PORT=3000
 DB_PATH=./data/recipes.db
 OPENAI_API_KEY=your_openai_api_key_here
+JWT_SECRET=your_secret_key_here  # Required for authentication
 ```
 
 4. Run the database migrations:
@@ -93,6 +94,41 @@ curl "http://localhost:3000/recipes?search=pasta"
 - Recipe collections/categories
 - Image support
 - Meal planning features
+
+## Logging
+
+The application uses a centralized logging system that follows these key rules:
+
+1. **No Direct Console Usage**: All logging must go through the `Logger` utility. Direct usage of `console.log`, `console.error`, etc. is forbidden.
+
+2. **JSON Output Format**: Logs are formatted as JSON to facilitate log parsing and analysis.
+
+### Using the Logger
+
+To use the logger in your code:
+
+```typescript
+import { Logger } from './utils/logger';
+
+// Create a context-specific logger
+const logger = Logger.forContext('YourComponentName');
+
+// Log at different levels
+logger.info('This is an info message', { additionalData: 'value' });
+logger.error('An error occurred', { error });
+logger.warn('Warning message');
+logger.debug('Debug information', { details: '...' });
+```
+
+### Log Levels
+
+The application supports the following log levels, in order of decreasing severity:
+- `error`: Critical issues that need immediate attention
+- `warn`: Important events that might cause issues but aren't critical failures
+- `info`: Normal operational information (default level)
+- `debug`: Detailed information useful for debugging
+
+The active log level can be configured via the `LOG_LEVEL` environment variable.
 
 ## License
 
