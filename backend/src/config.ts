@@ -75,44 +75,6 @@ export class Config {
     return process.env.COOKIE_NAME || 'recipeit_token';
   }
 
-  // static get META_VERIFY_TOKEN(): string {
-  //   return (
-  //     process.env.META_VERIFY_TOKEN || 'default-meta-webhook-verify-token-for-development-only'
-  //   );
-  // }
-
-  // static get META_APP_SECRET(): string {
-  //   const secret = process.env.META_APP_SECRET;
-  //   if (!secret) {
-  //     console.warn('META_APP_SECRET is not set in environment variables');
-  //   }
-  //   return secret || 'meta-app-secret-not-configured';
-  // }
-
-  // static get META_ACCESS_TOKEN(): string {
-  //   const token = process.env.META_ACCESS_TOKEN;
-  //   if (!token) {
-  //     console.warn('META_ACCESS_TOKEN is not set in environment variables');
-  //   }
-  //   return token || '';
-  // }
-
-  static get IG_USER_ID(): string {
-    const userId = process.env.IG_USER_ID;
-    if (!userId) {
-      console.warn('IG_USER_ID is not set in environment variables');
-    }
-    return userId || '';
-  }
-
-  static get FB_USER_ID(): string {
-    const userId = process.env.FB_USER_ID;
-    if (!userId) {
-      console.warn('FB_USER_ID is not set in environment variables');
-    }
-    return userId || '';
-  }
-
   static get RECIPE_URL_PREFIX(): string {
     return process.env.RECIPE_URL_PREFIX || 'http://localhost:3000/recipes';
   }
