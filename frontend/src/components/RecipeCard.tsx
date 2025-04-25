@@ -122,11 +122,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, popIntensity = 'medium'
 
               <i className="bi bi-people me-1"></i>
               <span>{localRecipe.servings ? `${localRecipe.servings} servings` : '-'}</span>
-
-              <span className="mx-2">•</span>
-
-              <i className="bi bi-ui-checks me-1"></i>
-              <span>{localRecipe.steps?.length || 0} steps</span>
             </div>
           </Col>
         </Row>

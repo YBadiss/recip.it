@@ -75,27 +75,27 @@ export class Config {
     return process.env.COOKIE_NAME || 'recipeit_token';
   }
 
-  static get META_VERIFY_TOKEN(): string {
-    return (
-      process.env.META_VERIFY_TOKEN || 'default-meta-webhook-verify-token-for-development-only'
-    );
-  }
+  // static get META_VERIFY_TOKEN(): string {
+  //   return (
+  //     process.env.META_VERIFY_TOKEN || 'default-meta-webhook-verify-token-for-development-only'
+  //   );
+  // }
 
-  static get META_APP_SECRET(): string {
-    const secret = process.env.META_APP_SECRET;
-    if (!secret) {
-      console.warn('META_APP_SECRET is not set in environment variables');
-    }
-    return secret || 'meta-app-secret-not-configured';
-  }
+  // static get META_APP_SECRET(): string {
+  //   const secret = process.env.META_APP_SECRET;
+  //   if (!secret) {
+  //     console.warn('META_APP_SECRET is not set in environment variables');
+  //   }
+  //   return secret || 'meta-app-secret-not-configured';
+  // }
 
-  static get META_ACCESS_TOKEN(): string {
-    const token = process.env.META_ACCESS_TOKEN;
-    if (!token) {
-      console.warn('META_ACCESS_TOKEN is not set in environment variables');
-    }
-    return token || '';
-  }
+  // static get META_ACCESS_TOKEN(): string {
+  //   const token = process.env.META_ACCESS_TOKEN;
+  //   if (!token) {
+  //     console.warn('META_ACCESS_TOKEN is not set in environment variables');
+  //   }
+  //   return token || '';
+  // }
 
   static get IG_USER_ID(): string {
     const userId = process.env.IG_USER_ID;
@@ -123,13 +123,5 @@ export class Config {
       console.warn('IMGUR_CLIENT_ID is not set in environment variables');
     }
     return clientId || '';
-  }
-
-  static get TOTP_SECRET(): string {
-    const secret = process.env.TOTP_SECRET;
-    if (!secret) {
-      console.warn('TOTP_SECRET is not set in environment variables');
-    }
-    return secret || '';
   }
 }

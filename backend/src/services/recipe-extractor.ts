@@ -90,7 +90,7 @@ Format your response as a JSON object with the following keys:
 - ingredients: array of objects with { id: string, name: string, quantity?: string, unit?: string }
 - materials: array of objects with { id: string, name: string, description?: string }
 - steps: array of objects with { action: string, ingredients: string[], materials: string[] }
-- tags: array of strings (cuisine type, dish type, main ingredients, dietary preferences)
+- tags: array of strings (cuisine type, dish type, main ingredients, dietary preferences). Limit the tags to the 5 most important ones.
 - cookingTime: string (e.g., "30 minutes", "1 hour 15 minutes")
 - servings: number (e.g., 4, 6, 8)
 
