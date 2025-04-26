@@ -47,31 +47,37 @@ export class RecipeStore {
       if (searchTerm) {
         this.searchRecipes(searchTerm, limit, offset).then(resolve).catch(reject);
       } else {
-        // First get the total count of recipes
-        this.dbConnection.get('SELECT COUNT(*) as total FROM recipes', (err, row) => {
-          if (err) {
-            reject(err);
-            return;
-          }
+        // Run both queries in parallel
+        const getTotalCount = new Promise<number>((resolveCount, rejectCount) => {
+          this.dbConnection.get('SELECT COUNT(*) as total FROM recipes', (err, row) => {
+            if (err) {
+              rejectCount(err);
+              return;
+            }
+            resolveCount((row as { total: number }).total);
+          });
+        });
 
-          const total = (row as { total: number }).total;
-
-          // Then get the paginated recipes
+        const getPaginatedRecipes = new Promise<Recipe[]>((resolveRecipes, rejectRecipes) => {
           this.dbConnection.all(
             'SELECT * FROM recipes ORDER BY updated_at DESC LIMIT ? OFFSET ?',
             [limit, offset],
             (err, rows) => {
               if (err) {
-                reject(err);
+                rejectRecipes(err);
                 return;
               }
-              resolve({
-                recipes: rows.map(row => this.parseRecipe(row as DbRow)),
-                total,
-              });
+              resolveRecipes(rows.map(row => this.parseRecipe(row as DbRow)));
             }
           );
         });
+
+        // Wait for both queries to complete
+        Promise.all([getTotalCount, getPaginatedRecipes])
+          .then(([total, recipes]) => {
+            resolve({ recipes, total });
+          })
+          .catch(reject);
       }
     });
   }
