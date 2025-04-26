@@ -2,131 +2,98 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Row, Col, Alert, Button } from 'react-bootstrap';
 import { useSearchParams } from 'react-router-dom';
 import { Recipe } from '../types/recipe';
-import { recipeApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RecipeCard from '../components/RecipeCard';
 import AddRecipeCard from '../components/AddRecipeCard';
+import { recipeService } from '../services/recipeService';
 
 const HomePage: React.FC = () => {
+  // Displayed recipes
   const [userRecipes, setUserRecipes] = useState<Recipe[]>([]);
   const [communityRecipes, setCommunityRecipes] = useState<Recipe[]>([]);
+
+  // Pagination state
   const [userRecipesTotal, setUserRecipesTotal] = useState(0);
   const [userRecipesPage, setUserRecipesPage] = useState(1);
   const [communityRecipesPage, setCommunityRecipesPage] = useState(1);
   const [userRecipesTotalPages, setUserRecipesTotalPages] = useState(1);
   const [communityRecipesTotalPages, setCommunityRecipesTotalPages] = useState(1);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
 
-  // Use a ref to track the current search query *being fetched* to avoid duplicates
-  const currentFetchQueryRef = useRef<string | undefined>(undefined);
+  // Use a ref to track the current search query
+  const currentQueryRef = useRef<string>('');
 
   const numberOfRecipesPerRowXs = 1;
   const numberOfRecipesPerRowMd = 2;
   const numberOfRecipesPerRowLg = 3;
-  const queryLimit = numberOfRecipesPerRowLg * 2;
+  const itemsPerPage = numberOfRecipesPerRowLg * 2;
 
-  // Fetch user recipes with current page - wrapped in useCallback
-  const fetchUserRecipes = useCallback(
-    async (page: number, query: string) => {
-      if (!isAuthenticated) {
-        setUserRecipes([]);
-        setUserRecipesTotal(0);
-        setUserRecipesTotalPages(1);
-        return;
-      }
+  // Load recipes using the service
+  const loadRecipes = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-      try {
-        const userRecipesResponse = await recipeApi.getAll({
-          limit: queryLimit,
-          page,
-          query: query || undefined,
-          inUserList: true,
-        });
+      const queryFromUrl = searchParams.get('q') || '';
+      currentQueryRef.current = queryFromUrl;
 
-        setUserRecipes(userRecipesResponse.items);
-        setUserRecipesTotal(userRecipesResponse.total);
-        setUserRecipesTotalPages(userRecipesResponse.totalPages);
-      } catch (err) {
-        setError('Failed to load your recipes. Please try again later.');
-      }
-    },
-    [isAuthenticated, numberOfRecipesPerRowLg]
-  ); // Dependency: isAuthenticated
+      // Use the service to get filtered and paginated recipes
+      const { userRecipes: userRecipesData, communityRecipes: communityRecipesData } =
+        await recipeService.getFilteredRecipes(
+          queryFromUrl,
+          isAuthenticated || false,
+          userRecipesPage,
+          communityRecipesPage,
+          itemsPerPage
+        );
 
-  // Fetch community recipes with current page - wrapped in useCallback
-  const fetchCommunityRecipes = useCallback(
-    async (page: number, query: string) => {
-      try {
-        const communityRecipesResponse = await recipeApi.getAll({
-          limit: queryLimit,
-          page,
-          query: query || undefined,
-          inUserList: isAuthenticated ? false : undefined,
-        });
+      // Update state with the filtered/paginated recipes
+      setUserRecipes(userRecipesData.items);
+      setCommunityRecipes(communityRecipesData.items);
+      setUserRecipesTotal(userRecipesData.total);
+      setUserRecipesTotalPages(userRecipesData.totalPages);
+      setCommunityRecipesTotalPages(communityRecipesData.totalPages);
+      setUserRecipesPage(userRecipesData.page);
+      setCommunityRecipesPage(communityRecipesData.page);
 
-        setCommunityRecipes(communityRecipesResponse.items);
-        setCommunityRecipesTotalPages(communityRecipesResponse.totalPages);
-      } catch (err) {
-        console.error('Error fetching community recipes:', err);
-        setError('Failed to load community recipes. Please try again later.');
-      }
-    },
-    [isAuthenticated, numberOfRecipesPerRowLg]
-  ); // Dependency: isAuthenticated
+      setLoading(false);
+    } catch (err) {
+      console.error('Error loading recipes:', err);
+      setError('Failed to load recipes. Please try again later.');
+      setLoading(false);
+    }
+  }, [isAuthenticated, searchParams, userRecipesPage, communityRecipesPage, itemsPerPage]);
 
-  // Primary fetch effect: Runs on mount, auth change, and URL search param change
+  // Initial load effect - runs on mount and auth change
   useEffect(() => {
     // Avoid running fetch if auth status is not yet determined
     if (typeof isAuthenticated === 'undefined') {
-      console.log('Primary fetch effect: Skipping fetch, isAuthenticated is undefined');
       return;
     }
+
+    // Reset pagination when auth changes
+    setUserRecipesPage(1);
+    setCommunityRecipesPage(1);
+
+    loadRecipes();
+  }, [isAuthenticated, loadRecipes]);
+
+  // Effect to update displayed recipes when search params change
+  useEffect(() => {
+    if (loading) return; // Skip during initial load
 
     const queryFromUrl = searchParams.get('q') || '';
-
-    // --- Gatekeeping: Only fetch if the query has actually changed ---
-    if (queryFromUrl === currentFetchQueryRef.current) {
-      return;
+    if (queryFromUrl !== currentQueryRef.current) {
+      // Reset pagination when search changes
+      setUserRecipesPage(1);
+      setCommunityRecipesPage(1);
+      loadRecipes();
     }
-    // -----------------------------------------------------------------
-
-    const fetchRecipesForQuery = async (query: string) => {
-      currentFetchQueryRef.current = query; // Update ref *before* fetching
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Reset pages when search query changes
-        setUserRecipesPage(1);
-        setCommunityRecipesPage(1);
-
-        // Fetch both user and community recipes in parallel
-        await Promise.all([fetchUserRecipes(1, query), fetchCommunityRecipes(1, query)]);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching recipes:', err);
-        setError('Failed to load recipes. Please try again later.');
-        setLoading(false);
-      }
-    };
-
-    fetchRecipesForQuery(queryFromUrl);
-  }, [searchParams, isAuthenticated, fetchUserRecipes, fetchCommunityRecipes]); // Added fetch functions to dependencies
-
-  // Handle recipe updates from RecipeCard components
-  const handleRecipeUpdate = (updatedRecipe: Recipe) => {
-    if (updatedRecipe.inUserList) {
-      setUserRecipes(recipes => recipes.map(r => (r.id === updatedRecipe.id ? updatedRecipe : r)));
-    } else {
-      setCommunityRecipes(recipes =>
-        recipes.map(r => (r.id === updatedRecipe.id ? updatedRecipe : r))
-      );
-    }
-  };
+  }, [searchParams, loading, loadRecipes]);
 
   // Handle navigation for user recipes
   const handleUserRecipesNavigation = (direction: 'prev' | 'next') => {
@@ -134,25 +101,7 @@ const HomePage: React.FC = () => {
 
     if (newPage >= 1 && newPage <= userRecipesTotalPages) {
       setUserRecipesPage(newPage);
-
-      // Fetch user recipes for the new page
-      const fetchUserRecipesForPage = async () => {
-        try {
-          const userRecipesResponse = await recipeApi.getAll({
-            limit: queryLimit,
-            page: newPage,
-            query: currentFetchQueryRef.current || undefined,
-            inUserList: true,
-          });
-
-          setUserRecipes(userRecipesResponse.items);
-        } catch (err) {
-          console.error('Error fetching user recipes:', err);
-          setError('Failed to load your recipes. Please try again later.');
-        }
-      };
-
-      fetchUserRecipesForPage();
+      loadRecipes();
     }
   };
 
@@ -162,24 +111,7 @@ const HomePage: React.FC = () => {
 
     if (newPage >= 1 && newPage <= communityRecipesTotalPages) {
       setCommunityRecipesPage(newPage);
-
-      // Fetch community recipes for the new page
-      const fetchCommunityRecipesForPage = async () => {
-        try {
-          const communityRecipesResponse = await recipeApi.getAll({
-            limit: queryLimit,
-            page: newPage,
-            query: currentFetchQueryRef.current || undefined,
-            inUserList: isAuthenticated ? false : undefined,
-          });
-
-          setCommunityRecipes(communityRecipesResponse.items);
-        } catch (err) {
-          setError('Failed to load community recipes. Please try again later.');
-        }
-      };
-
-      fetchCommunityRecipesForPage();
+      loadRecipes();
     }
   };
 
@@ -245,14 +177,10 @@ const HomePage: React.FC = () => {
               >
                 {userRecipes.map(recipe => (
                   <Col key={recipe.id}>
-                    <RecipeCard
-                      recipe={recipe}
-                      popIntensity="medium"
-                      onRecipeUpdate={handleRecipeUpdate}
-                    />
+                    <RecipeCard recipe={recipe} popIntensity="medium" />
                   </Col>
                 ))}
-                {((userRecipesPage === userRecipesTotalPages && userRecipesTotal < queryLimit) ||
+                {((userRecipesPage === userRecipesTotalPages && userRecipesTotal < itemsPerPage) ||
                   userRecipesTotal === 0) && (
                   <Col>
                     <AddRecipeCard popIntensity="medium" />
@@ -317,16 +245,12 @@ const HomePage: React.FC = () => {
             >
               {communityRecipes.map(recipe => (
                 <Col key={recipe.id}>
-                  <RecipeCard
-                    recipe={recipe}
-                    popIntensity="subtle"
-                    onRecipeUpdate={handleRecipeUpdate}
-                  />
+                  <RecipeCard recipe={recipe} popIntensity="subtle" />
                 </Col>
               ))}
               {!isAuthenticated &&
                 ((communityRecipesPage === communityRecipesTotalPages &&
-                  communityRecipes.length < queryLimit) ||
+                  communityRecipes.length < itemsPerPage) ||
                   communityRecipes.length === 0) && (
                   <Col>
                     <AddRecipeCard popIntensity="subtle" />

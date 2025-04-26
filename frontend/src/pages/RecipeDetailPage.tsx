@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Badge, ListGroup, Alert, Breadcrumb } from 'react-bootstrap';
 import { Recipe, Ingredient, Material } from '../types/recipe';
-import { recipeApi } from '../services/api';
+import { recipeService } from '../services/recipeService';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 
@@ -34,11 +34,10 @@ const RecipeDetailPage: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await recipeApi.getById(id);
+        const data = await recipeService.getById(id);
         setRecipe(data);
         setLoading(false);
       } catch (err: unknown) {
-        console.error('Error fetching recipe:', err);
         // Check if it's a 404 error specifically
         const apiError = err as ApiError;
         if (apiError?.response?.status === 404) {
@@ -74,18 +73,17 @@ const RecipeDetailPage: React.FC = () => {
         try {
           // Determine action based on current state
           if (recipe.inUserList) {
-            await recipeApi.removeFromUserList(id);
+            await recipeService.removeFromUserList(id);
             toast.success('Removed from your list');
           } else {
-            await recipeApi.addToUserList(recipe.link);
+            await recipeService.addToUserList(recipe.link);
             toast.success('Added to your list');
           }
 
           // Refresh recipe data to update UI
-          const updatedRecipe = await recipeApi.getById(id);
+          const updatedRecipe = await recipeService.getById(id);
           setRecipe(updatedRecipe);
         } catch (err) {
-          console.error('Error performing pending action:', err);
           toast.error('Failed to update your list. Please try again.');
         }
       }
@@ -111,19 +109,18 @@ const RecipeDetailPage: React.FC = () => {
     try {
       if (recipe.inUserList) {
         // Remove from user list
-        await recipeApi.removeFromUserList(id);
+        await recipeService.removeFromUserList(id);
         toast.success('Removed from your list');
       } else {
         // Add to user list
-        await recipeApi.addToUserList(recipe.link);
+        await recipeService.addToUserList(recipe.link);
         toast.success('Added to your list');
       }
 
       // Refresh the recipe data
-      const updatedRecipe = await recipeApi.getById(id);
+      const updatedRecipe = await recipeService.getById(id);
       setRecipe(updatedRecipe);
     } catch (err) {
-      console.error('Error updating recipe in user list:', err);
       toast.error('Failed to update your list. Please try again.');
     }
   };

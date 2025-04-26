@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Recipe, RecipeImport, PaginatedResponse, GetAllRecipesParams } from '../types/recipe';
+import { Recipe, RecipeImport } from '../types/recipe';
 import { LoginCredentials, RegisterData, User, UserResponse } from '../types/user';
 
 // Use environment variable with fallback
@@ -47,7 +47,9 @@ interface RecipeResponse {
   recipe: Recipe;
 }
 
-interface RecipesResponse extends PaginatedResponse<Recipe> {}
+interface RecipesResponse {
+  recipes: Recipe[];
+}
 
 // Add response interceptor to handle errors, but don't redirect to 404
 // Let the components handle specific status codes
@@ -60,20 +62,12 @@ api.interceptors.response.use(
 
     // Check for 401 Unauthorized responses that are not from the profile endpoint
     if (error.response && error.response.status === 401 && !url.includes('/users/profile')) {
-      console.error('Authentication required');
-
       // If we have a redirect handler, use it
       if (authRedirectHandler) {
         // Get current path to redirect back after login
         const currentPath = window.location.pathname;
         authRedirectHandler(currentPath);
       }
-    }
-    // Log other errors (except profile 401s, which are expected during auth checks)
-    else if (error.response && !(error.response.status === 401 && url.includes('/users/profile'))) {
-      console.error(`API Error: ${error.response.status} - ${error.response.statusText}`);
-    } else if (!error.response) {
-      console.error('API Error:', error.message);
     }
 
     return Promise.reject(error);
@@ -110,7 +104,6 @@ export const authApi = {
       if (apiError?.response?.status === 401) {
         throw error;
       }
-      console.error('Error fetching user profile:', error);
       throw error;
     }
   },
@@ -119,14 +112,9 @@ export const authApi = {
 // API functions for recipes
 export const recipeApi = {
   // Get all recipes with optional params (search query, pagination, etc.)
-  getAll: async (params?: GetAllRecipesParams): Promise<PaginatedResponse<Recipe>> => {
-    try {
-      const response = await api.get<RecipesResponse>('/recipes', { params });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching recipes:', error);
-      throw error;
-    }
+  getAll: async (): Promise<RecipesResponse> => {
+    const response = await api.get<RecipesResponse>('/recipes');
+    return response.data;
   },
 
   // Get a single recipe by ID

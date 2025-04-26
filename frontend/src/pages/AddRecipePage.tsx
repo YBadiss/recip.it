@@ -10,7 +10,7 @@ import {
   ButtonGroup,
 } from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom';
-import { recipeApi } from '../services/api';
+import { recipeService } from '../services/recipeService';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const AddRecipePage: React.FC = () => {
@@ -62,9 +62,9 @@ const AddRecipePage: React.FC = () => {
       if (sourceType === 'upload') {
         const formData = new FormData();
         formData.append('recipe', selectedFile as File);
-        recipe = await recipeApi.importFile(formData);
+        recipe = await recipeService.importFile(formData);
       } else {
-        recipe = await recipeApi.import({ link: url });
+        recipe = await recipeService.import({ link: url });
       }
 
       if (recipe && recipe.id) {
@@ -73,7 +73,6 @@ const AddRecipePage: React.FC = () => {
         setError('Failed to process recipe. Please try again with a different source.');
       }
     } catch (err) {
-      console.error('Error adding recipe:', err);
       if (sourceType === 'upload') {
         setError(
           'Failed to process the uploaded file. Make sure it contains valid recipe content.'

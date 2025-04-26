@@ -9,6 +9,7 @@ import React, {
 import { useNavigate } from 'react-router-dom';
 import { AuthState } from '../types/user';
 import { authApi, setAuthRedirectHandler } from '../services/api';
+import { recipeService } from '../services/recipeService';
 
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<void>;
@@ -60,21 +61,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             isLoading: false,
             error: null,
           });
+
+          // Refresh recipe data on successful auth check
+          await recipeService.refreshData();
         } else {
           // If we got a response but no valid user, set not authenticated
-          console.error('No valid user data returned from profile endpoint');
           setState({
             ...defaultAuthState,
             isLoading: false,
           });
+
+          // Still refresh recipe data as unauthenticated
+          await recipeService.refreshData();
         }
       } catch (error) {
-        console.error('Error checking auth status:', error);
         // On error, set not authenticated
         setState({
           ...defaultAuthState,
           isLoading: false,
         });
+
+        // Still refresh recipe data as unauthenticated
+        await recipeService.refreshData();
       }
     };
 
@@ -94,6 +102,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           isLoading: false,
           error: null,
         });
+
+        // Refresh recipe data after login
+        await recipeService.refreshData();
       } else {
         throw new Error('Invalid user data received from server');
       }
@@ -141,6 +152,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ...defaultAuthState,
         isLoading: false,
       });
+
+      // Refresh recipe data after logout
+      await recipeService.refreshData();
+
       // Redirect to home page after logout
       navigate('/', { replace: true });
     } catch (error) {
@@ -149,7 +164,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ...defaultAuthState,
         isLoading: false,
       });
-      console.error('Logout error:', error);
+
+      // Still refresh recipe data on error
+      await recipeService.refreshData();
+
       // Still redirect to home page on error
       navigate('/', { replace: true });
     }

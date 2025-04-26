@@ -16,60 +16,16 @@ export class RecipeController {
 
   // Get all recipes for the current user
   getAllRecipes = async (req: Request, res: Response): Promise<void> => {
-    this.logger.info('Getting all recipes', { query: req.query, userId: req.user?.userId });
     try {
-      const { query, page, limit, inUserList } = req.query;
+      this.logger.info('Getting all recipes', { userId: req.user?.userId });
 
-      // Parse pagination parameters with defaults
-      const pageNum = page ? parseInt(page as string, 10) : 1;
-      const limitNum = limit ? parseInt(limit as string, 10) : 20;
-
-      // Validation
-      if (isNaN(pageNum) || pageNum < 1) {
-        this.logger.info('Invalid page parameter', { page });
-        res.status(400).json({ error: 'Page must be a positive number' });
-        return;
-      }
-
-      if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-        this.logger.info('Invalid limit parameter', { limit });
-        res.status(400).json({ error: 'Limit must be between 1 and 100' });
-        return;
-      }
-
-      // Parse inUserList filter if provided
-      let inUserListFilter: boolean | undefined = undefined;
-      if (inUserList !== undefined) {
-        // Accept both string and boolean values in the query
-        if (typeof inUserList === 'string') {
-          inUserListFilter = inUserList.toLowerCase() === 'true';
-        } else if (typeof inUserList === 'boolean') {
-          inUserListFilter = inUserList;
-        }
-      }
-
-      this.logger.info('Fetching recipes with filters', {
-        query,
-        userId: req.user?.userId,
-        page: pageNum,
-        limit: limitNum,
-        inUserList: inUserListFilter,
-      });
-
-      const paginatedRecipes = await this.recipeService.getAllRecipes({
-        query: query as string | undefined,
-        userId: req.user?.userId,
-        page: pageNum,
-        limit: limitNum,
-        inUserList: inUserListFilter,
-      });
+      const recipes = await this.recipeService.getAllRecipes(req.user?.userId);
 
       this.logger.info('Successfully fetched recipes', {
-        count: paginatedRecipes.items.length,
-        total: paginatedRecipes.total,
+        count: recipes.length,
       });
 
-      res.json(paginatedRecipes);
+      res.json({ recipes });
     } catch (error) {
       this.logger.error('Error fetching recipes', { error });
       res.status(500).json({

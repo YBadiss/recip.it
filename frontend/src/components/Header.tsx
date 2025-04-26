@@ -41,7 +41,7 @@ const Header: React.FC = () => {
       // Logout function in AuthContext now handles the navigation to home page
       await logout();
     } catch (error) {
-      console.error('Logout failed:', error);
+      // Logout failed, but we don't need to log it here as it's handled in AuthContext
     }
   };
 
@@ -91,7 +91,7 @@ const Header: React.FC = () => {
     updateUrlTimeout.current = window.setTimeout(() => {
       updateSearchParams(query);
       updateUrlTimeout.current = null;
-    }, 200); // 50ms debounce for URL update
+    }, 50); // 50ms debounce for URL update
   };
 
   return (

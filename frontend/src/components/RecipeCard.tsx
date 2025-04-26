@@ -7,7 +7,6 @@ import './RecipeCard.css';
 interface RecipeCardProps {
   recipe: Recipe;
   popIntensity?: 'subtle' | 'medium' | 'intense';
-  onRecipeUpdate?: (updatedRecipe: Recipe) => void;
 }
 
 // Pop effect intensity presets

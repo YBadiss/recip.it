@@ -16,22 +16,6 @@ export interface RecipeWithOwnership extends Recipe {
   inUserList: boolean;
 }
 
-export interface GetAllRecipesParams {
-  query?: string;
-  userId?: string;
-  page?: number;
-  limit?: number;
-  inUserList?: boolean;
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
 export interface UpdateRecipeData {
   title?: string;
   ingredients?: string[];
@@ -177,67 +161,24 @@ export class RecipeService {
     }
   }
 
-  public async getAllRecipes(
-    params: GetAllRecipesParams
-  ): Promise<PaginatedResponse<RecipeWithOwnership>> {
-    const { query, userId, page = 1, limit = 20, inUserList } = params;
-    this.logger.info('Getting all recipes', { query, userId, page, limit, inUserList });
-
-    const offset = (page - 1) * limit;
-
-    // Use the optimized store method that handles user filtering at the database level
-    this.logger.info('Querying database for recipes', { offset, limit });
-    const { recipes, total } = await this.recipeStore.getRecipesWithUserFilter({
-      searchTerm: query,
-      limit,
-      offset,
-      userId,
-      inUserList,
-    });
-    this.logger.info('Retrieved recipes from database', { count: recipes.length, total });
-
-    // Calculate total pages
-    const totalPages = Math.ceil(total / limit);
+  public async getAllRecipes(userId?: string): Promise<RecipeWithOwnership[]> {
+    const recipes = await this.recipeStore.getAllRecipes();
+    this.logger.info('Retrieved recipes from database', { count: recipes.length });
 
     // If we have a userId but no inUserList filter was applied at the DB level,
     // we still need to add the inUserList property to each recipe
-    let recipesWithOwnership: RecipeWithOwnership[];
-
-    if (userId && inUserList === undefined) {
+    let userRecipeIds: string[] = [];
+    if (userId) {
       this.logger.info('Adding ownership information to recipes', { userId });
       // Get the list of recipe IDs this user has access to
-      const userRecipeIds = await this.userStore.getUserRecipes(userId);
-
-      // Add inUserList flag to each recipe
-      recipesWithOwnership = recipes.map(recipe => ({
-        ...recipe,
-        inUserList: recipe.id ? userRecipeIds.includes(recipe.id) : false,
-      }));
-    } else if (inUserList !== undefined) {
-      this.logger.info('Using pre-filtered ownership information', { inUserList });
-      // If we used the inUserList filter at the DB level, we already know
-      // the value of inUserList for each recipe
-      recipesWithOwnership = recipes.map(recipe => ({
-        ...recipe,
-        inUserList: inUserList,
-      }));
-    } else {
-      this.logger.info('No user ID, marking all recipes as not in user list');
-      // No user, so nothing is in any user's list
-      recipesWithOwnership = recipes.map(recipe => ({
-        ...recipe,
-        inUserList: false,
-      }));
+      userRecipeIds = await this.userStore.getUserRecipes(userId);
     }
 
-    // Return paginated response
-    return {
-      items: recipesWithOwnership,
-      total,
-      page,
-      limit,
-      totalPages,
-    };
+    // Add inUserList flag to each recipe
+    return recipes.map(recipe => ({
+      ...recipe,
+      inUserList: recipe.id ? userRecipeIds.includes(recipe.id) : false,
+    }));
   }
 
   public async getRecipeById(id: string, userId?: string): Promise<RecipeWithOwnership | null> {
@@ -362,38 +303,5 @@ export class RecipeService {
   public async getRecipeFromUrl(url: string): Promise<ExtractedRecipe> {
     this.logger.info('Extracting recipe from URL', { url });
     return await this.recipeExtractor.extractRecipeFromUrl(url);
-  }
-
-  public async refreshRecipe(id: string): Promise<Recipe> {
-    // Get existing recipe
-    const existingRecipe = await this.recipeStore.getRecipeById(id);
-    if (!existingRecipe) {
-      throw new Error('Recipe not found');
-    }
-
-    // Re-extract recipe details from the link
-    const extractedRecipe = await this.recipeExtractor.extractRecipeFromUrl(existingRecipe.link);
-
-    // Update the recipe in the database
-    const recipeData = {
-      title: extractedRecipe.title || 'Untitled Recipe',
-      ingredients: extractedRecipe.ingredients || [],
-      materials: extractedRecipe.materials || [],
-      steps: extractedRecipe.steps || [],
-      tags: extractedRecipe.tags || [],
-      imageUrl: extractedRecipe.imageUrl || '',
-      cookingTime: extractedRecipe.cookingTime || '',
-      servings: extractedRecipe.servings || 0,
-    };
-
-    await this.recipeStore.updateRecipe(id, recipeData);
-
-    // Get the updated recipe
-    const updatedRecipe = await this.recipeStore.getRecipeById(id);
-    if (!updatedRecipe) {
-      throw new Error('Failed to retrieve updated recipe');
-    }
-
-    return updatedRecipe;
   }
 }
