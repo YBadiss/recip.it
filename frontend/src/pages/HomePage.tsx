@@ -1,11 +1,17 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Row, Col, Alert, Button } from 'react-bootstrap';
-import { useSearchParams } from 'react-router-dom';
 import { Recipe } from '../types/recipe';
 import { useAuth } from '../context/AuthContext';
 import RecipeCard from '../components/RecipeCard';
 import AddRecipeCard from '../components/AddRecipeCard';
 import { recipeService } from '../services/recipeService';
+
+// Define custom event type
+interface RecipeSearchEvent extends CustomEvent {
+  detail: {
+    query: string;
+  };
+}
 
 const HomePage: React.FC = () => {
   // Displayed recipes
@@ -21,7 +27,7 @@ const HomePage: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState('');
   const { isAuthenticated } = useAuth();
 
   // Use a ref to track the current search query
@@ -38,13 +44,13 @@ const HomePage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const queryFromUrl = searchParams.get('q') || '';
-      currentQueryRef.current = queryFromUrl;
+      // Use the current search query state instead of URL
+      const queryToUse = currentQueryRef.current;
 
       // Use the service to get filtered and paginated recipes
       const { userRecipes: userRecipesData, communityRecipes: communityRecipesData } =
         await recipeService.getFilteredRecipes(
-          queryFromUrl,
+          queryToUse,
           isAuthenticated || false,
           userRecipesPage,
           communityRecipesPage,
@@ -66,7 +72,32 @@ const HomePage: React.FC = () => {
       setError('Failed to load recipes. Please try again later.');
       setLoading(false);
     }
-  }, [isAuthenticated, searchParams, userRecipesPage, communityRecipesPage, itemsPerPage]);
+  }, [isAuthenticated, userRecipesPage, communityRecipesPage, itemsPerPage]);
+
+  // Listen for search events from the header
+  useEffect(() => {
+    const handleSearch = (event: RecipeSearchEvent) => {
+      const newQuery = event.detail.query;
+
+      if (newQuery !== currentQueryRef.current) {
+        currentQueryRef.current = newQuery;
+        setSearchQuery(newQuery);
+
+        // Reset pagination when search changes
+        setUserRecipesPage(1);
+        setCommunityRecipesPage(1);
+
+        // Load recipes with new query
+        loadRecipes();
+      }
+    };
+
+    window.addEventListener('recipe-search', handleSearch as EventListener);
+
+    return () => {
+      window.removeEventListener('recipe-search', handleSearch as EventListener);
+    };
+  }, [loadRecipes]);
 
   // Initial load effect - runs on mount and auth change
   useEffect(() => {
@@ -81,19 +112,6 @@ const HomePage: React.FC = () => {
 
     loadRecipes();
   }, [isAuthenticated, loadRecipes]);
-
-  // Effect to update displayed recipes when search params change
-  useEffect(() => {
-    if (loading) return; // Skip during initial load
-
-    const queryFromUrl = searchParams.get('q') || '';
-    if (queryFromUrl !== currentQueryRef.current) {
-      // Reset pagination when search changes
-      setUserRecipesPage(1);
-      setCommunityRecipesPage(1);
-      loadRecipes();
-    }
-  }, [searchParams, loading, loadRecipes]);
 
   // Handle navigation for user recipes
   const handleUserRecipesNavigation = (direction: 'prev' | 'next') => {
@@ -119,9 +137,6 @@ const HomePage: React.FC = () => {
     return <div></div>;
   }
 
-  // Read the latest query from URL for display purposes
-  const displayQuery = searchParams.get('q') || '';
-
   const noResultsFound = isAuthenticated
     ? userRecipes.length === 0 && communityRecipes.length === 0
     : communityRecipes.length === 0;
@@ -131,9 +146,9 @@ const HomePage: React.FC = () => {
       {error && <Alert variant="danger">{error}</Alert>}
 
       <div>
-        {displayQuery && noResultsFound && (
+        {searchQuery && noResultsFound && (
           <Alert variant="info">
-            {`No recipes found matching "${displayQuery}". Try a different search term.`}
+            {`No recipes found matching "${searchQuery}". Try a different search term.`}
           </Alert>
         )}
 

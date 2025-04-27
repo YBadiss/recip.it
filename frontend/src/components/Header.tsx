@@ -1,18 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Navbar, Container, Nav, Button, Image, NavDropdown } from 'react-bootstrap';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SearchBar from './SearchBar';
+
+// Extend Window interface to include our custom property
+declare global {
+  interface Window {
+    searchDebounceTimer: number | null;
+  }
+}
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
   const [isHidden, setIsHidden] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchQueryRef = useRef('');
 
-  const updateUrlTimeout = useRef<number | null>(null); // Ref for debounce timer
+  // Initialize the global timer
+  if (typeof window.searchDebounceTimer === 'undefined') {
+    window.searchDebounceTimer = null;
+  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -50,48 +60,40 @@ const Header: React.FC = () => {
     navigate('/add');
   };
 
-  // Helper to update search params
-  const updateSearchParams = (query: string) => {
-    const params = new URLSearchParams(searchParams);
-    if (query) {
-      params.set('q', query);
-    } else {
-      params.delete('q');
-    }
-    // Use replace: true to avoid bloating browser history during typing
-    setSearchParams(params, { replace: true });
-  };
-
-  // Update URL when search is explicitly submitted
-  const handleSearchSubmit = (query: string) => {
-    // Clear pending debounce timer
-    if (updateUrlTimeout.current) {
-      clearTimeout(updateUrlTimeout.current);
-      updateUrlTimeout.current = null;
-    }
-
-    updateSearchParams(query); // Update URL immediately
-
-    // Always navigate to home page when searching from other pages
-    if (window.location.pathname !== '/') {
-      navigate(`/?q=${encodeURIComponent(query)}`);
-    }
+  const handleSubmit = (query: string) => {
+    handleSearch(query, true);
   };
 
   // Handle real-time search updates from SearchBar input change
-  const handleSearch = (query: string) => {
+  const handleSearch = (query: string, isSubmit: boolean = false) => {
     setSearchQuery(query);
-    // Don't dispatch event, just update local state and debounce URL update
+    searchQueryRef.current = query;
 
-    // Debounce the URL update
-    if (updateUrlTimeout.current) {
-      clearTimeout(updateUrlTimeout.current);
+    // If user starts typing and is not on home page, navigate to home
+    if (window.location.pathname !== '/' && query.trim().length > 0) {
+      navigate('/');
     }
 
-    updateUrlTimeout.current = window.setTimeout(() => {
-      updateSearchParams(query);
-      updateUrlTimeout.current = null;
-    }, 50); // 50ms debounce for URL update
+    // Dispatch a debounced custom event
+    if (window.searchDebounceTimer) {
+      clearTimeout(window.searchDebounceTimer);
+    }
+
+    if (isSubmit) {
+      window.searchDebounceTimer = window.setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent('recipe-search', {
+            detail: { query },
+          })
+        );
+      }, 50); // 50ms debounce
+    } else {
+      window.dispatchEvent(
+        new CustomEvent('recipe-search', {
+          detail: { query },
+        })
+      );
+    }
   };
 
   return (
@@ -118,8 +120,8 @@ const Header: React.FC = () => {
 
             <div className="header-search-container me-3 d-flex">
               <SearchBar
-                onSearch={handleSearch} // Updates local state & debounces URL update
-                onSubmit={handleSearchSubmit} // Updates URL immediately
+                onSearch={handleSearch}
+                onSubmit={handleSubmit}
                 initialValue={searchQuery}
               />
             </div>
