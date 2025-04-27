@@ -17,6 +17,9 @@ const api = axios.create({
 // Store the redirect function - will be set by the auth service
 let authRedirectHandler: ((url?: string) => void) | null = null;
 
+// Track pending profile request to avoid duplicates
+let pendingProfileRequest: Promise<User> | null = null;
+
 // Function to set the redirect handler
 export const setAuthRedirectHandler = (handler: (url?: string) => void) => {
   authRedirectHandler = handler;
@@ -95,17 +98,31 @@ export const authApi = {
 
   // Get current user profile
   getCurrentUser: async (): Promise<User> => {
-    try {
-      const response = await api.get<UserResponse>('/users/profile');
-      return response.data.user;
-    } catch (error: unknown) {
-      // For unauthorized errors, just handle gracefully without logging or redirecting
-      const apiError = error as ApiErrorResponse;
-      if (apiError?.response?.status === 401) {
-        throw error;
-      }
-      throw error;
+    // If there's already a pending request, return that promise
+    // instead of creating a new request
+    if (pendingProfileRequest) {
+      return pendingProfileRequest;
     }
+
+    // Create a new request promise
+    pendingProfileRequest = (async () => {
+      try {
+        const response = await api.get<UserResponse>('/users/profile');
+        return response.data.user;
+      } catch (error: unknown) {
+        // For unauthorized errors, just handle gracefully without logging or redirecting
+        const apiError = error as ApiErrorResponse;
+        if (apiError?.response?.status === 401) {
+          throw error;
+        }
+        throw error;
+      } finally {
+        // Clear the pending request when done
+        pendingProfileRequest = null;
+      }
+    })();
+
+    return pendingProfileRequest;
   },
 };
 

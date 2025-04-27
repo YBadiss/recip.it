@@ -26,15 +26,84 @@ export class RecipeStore {
     this.dbConnection = dbConnection;
     // Create index on link column if it doesn't exist
     this.ensureLinkIndex();
+    // Add unique constraint on link column
+    this.ensureUniqueConstraint();
   }
 
   // Ensure the link index exists for faster lookups
   private ensureLinkIndex(): void {
-    this.dbConnection.run('CREATE INDEX IF NOT EXISTS idx_recipes_link ON recipes(link)', err => {
-      if (err) {
-        console.error('Error creating link index:', err);
+    this.dbConnection.get(
+      "SELECT COUNT(*) AS count FROM sqlite_master WHERE type='index' AND name='idx_recipes_link'",
+      (err, result: { count: number }) => {
+        if (err) {
+          console.error('Error checking for link index:', err);
+          return;
+        }
+
+        // Only create the index if it doesn't exist
+        if (result.count === 0) {
+          this.dbConnection.run(
+            'CREATE INDEX IF NOT EXISTS idx_recipes_link ON recipes(link)',
+            err => {
+              if (err) {
+                console.error('Error creating link index:', err);
+              }
+            }
+          );
+        }
       }
-    });
+    );
+  }
+
+  // Ensure unique constraint on link column
+  private ensureUniqueConstraint(): void {
+    // Check if constraint already exists to avoid errors when table already has data
+    this.dbConnection.get(
+      "SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name='recipes' AND sql LIKE '%link%UNIQUE%'",
+      (err, result: { count: number }) => {
+        if (err) {
+          console.error('Error checking for unique constraint:', err);
+          return;
+        }
+
+        // Only recreate the table if the unique constraint doesn't exist
+        if (result.count === 0) {
+          console.log('Adding unique constraint on link column');
+          this.dbConnection.run(
+            `
+            CREATE TABLE IF NOT EXISTS recipes_new (
+              id TEXT PRIMARY KEY,
+              title TEXT NOT NULL,
+              link TEXT NOT NULL UNIQUE,
+              ingredients TEXT NOT NULL,
+              materials TEXT NOT NULL,
+              steps TEXT NOT NULL,
+              tags TEXT NOT NULL,
+              imageUrl TEXT,
+              cookingTime TEXT,
+              servings INTEGER,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            INSERT OR IGNORE INTO recipes_new 
+            SELECT * FROM recipes;
+            
+            DROP TABLE IF EXISTS recipes;
+            
+            ALTER TABLE recipes_new RENAME TO recipes;
+            
+            CREATE INDEX IF NOT EXISTS idx_recipes_link ON recipes(link);
+          `,
+            err => {
+              if (err) {
+                console.error('Error ensuring unique constraint:', err);
+              }
+            }
+          );
+        }
+      }
+    );
   }
 
   // Get all recipes
@@ -114,13 +183,33 @@ export class RecipeStore {
           preparedRecipe.cookingTime || '',
           preparedRecipe.servings || 0,
         ],
-        function (err) {
+        function (this: RecipeStore, err: Error | null) {
           if (err) {
-            reject(err);
+            // Check if this is a unique constraint violation
+            if (err.message.includes('UNIQUE constraint failed')) {
+              // Get the existing recipe with this link and return its ID
+              this.dbConnection.get(
+                'SELECT id FROM recipes WHERE link = ?',
+                [preparedRecipe.link],
+                (dbErr: Error | null, row: { id: string } | undefined) => {
+                  if (dbErr) {
+                    reject(dbErr);
+                    return;
+                  }
+                  if (row && row.id) {
+                    resolve(row.id);
+                  } else {
+                    reject(new Error('Failed to get ID of existing recipe'));
+                  }
+                }
+              );
+            } else {
+              reject(err);
+            }
             return;
           }
           resolve(recipeId);
-        }
+        }.bind(this)
       );
     });
   }

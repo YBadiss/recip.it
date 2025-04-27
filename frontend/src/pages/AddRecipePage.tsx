@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Container,
   Card,
@@ -9,12 +9,13 @@ import {
   ToggleButton,
   ButtonGroup,
 } from 'react-bootstrap';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { recipeService } from '../services/recipeService';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const AddRecipePage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +23,31 @@ const AddRecipePage: React.FC = () => {
   const [sourceType, setSourceType] = useState('recipe'); // 'recipe', 'youtube', or 'upload'
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importAttemptedRef = useRef(false);
+
+  // Check for URL parameter on component mount
+  useEffect(() => {
+    const urlParam = searchParams.get('url');
+    // Only process if we have a URL and haven't attempted an import yet
+    if (urlParam && !importAttemptedRef.current) {
+      // Mark that we've attempted an import to prevent duplicates
+      importAttemptedRef.current = true;
+
+      setUrl(urlParam);
+      // If the URL is from a YouTube video, set source type to youtube
+      if (urlParam.includes('youtube.com') || urlParam.includes('youtu.be')) {
+        setSourceType('youtube');
+      } else {
+        setSourceType('recipe');
+      }
+
+      // Auto-submit the form after a small delay to ensure state updates
+      setTimeout(() => {
+        handleImport(urlParam);
+      }, 10);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // We don't include handleImport as it would cause an infinite loop
 
   const validateUrl = (value: string): boolean => {
     if (!value) {
@@ -39,6 +65,34 @@ const AddRecipePage: React.FC = () => {
     }
   };
 
+  // Separate function to handle import (used by both auto-submit and manual submit)
+  const handleImport = async (urlToImport: string) => {
+    if (!validateUrl(urlToImport)) {
+      return false;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('Importing URL:', urlToImport);
+      const recipe = await recipeService.import({ link: urlToImport });
+
+      if (recipe && recipe.id) {
+        navigate(`/recipes/${recipe.id}`);
+        return true;
+      } else {
+        setError('Failed to process recipe. Please try again with a different source.');
+        return false;
+      }
+    } catch (err) {
+      setError('Failed to add recipe. The URL may not contain a valid recipe.');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -47,41 +101,30 @@ const AddRecipePage: React.FC = () => {
         setError('Please select a file to upload');
         return;
       }
-    } else {
-      if (!validateUrl(url)) {
-        return;
-      }
-    }
 
-    try {
-      setLoading(true);
-      setError(null);
+      try {
+        setLoading(true);
+        setError(null);
 
-      let recipe;
-
-      if (sourceType === 'upload') {
         const formData = new FormData();
         formData.append('recipe', selectedFile as File);
-        recipe = await recipeService.importFile(formData);
-      } else {
-        recipe = await recipeService.import({ link: url });
-      }
+        const recipe = await recipeService.importFile(formData);
 
-      if (recipe && recipe.id) {
-        navigate(`/recipes/${recipe.id}`);
-      } else {
-        setError('Failed to process recipe. Please try again with a different source.');
-      }
-    } catch (err) {
-      if (sourceType === 'upload') {
+        if (recipe && recipe.id) {
+          navigate(`/recipes/${recipe.id}`);
+        } else {
+          setError('Failed to process recipe. Please try again with a different source.');
+        }
+      } catch (err) {
         setError(
           'Failed to process the uploaded file. Make sure it contains valid recipe content.'
         );
-      } else {
-        setError('Failed to add recipe. The URL may not contain a valid recipe.');
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
+    } else {
+      // For URL imports, use the common import handler
+      await handleImport(url);
     }
   };
 
@@ -210,6 +253,19 @@ const AddRecipePage: React.FC = () => {
               </Button>
             </div>
           </Form>
+
+          {sourceType !== 'upload' && (
+            <Alert variant="info" className="mt-4">
+              <Alert.Heading>Pro Tip</Alert.Heading>
+              <p>
+                You can also add recipes from anywhere by prefixing any recipe URL with{' '}
+                <code>https://recipit.me/</code>
+              </p>
+              <p className="mb-0">
+                Example: <code>https://recipit.me/https://example.com/great-recipe</code>
+              </p>
+            </Alert>
+          )}
         </Card.Body>
       </Card>
     </Container>

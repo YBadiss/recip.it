@@ -139,17 +139,23 @@ export class RecipeService {
         const recipeId = await this.recipeStore.createRecipe(recipeData);
         this.logger.info('Created new recipe', { recipeId, title: recipeData.title });
 
+        // If recipeId was returned from a unique constraint violation handler,
+        // the recipe already existed in the database (race condition)
+        // Get the recipe to make sure we have the complete data
+        const recipe = await this.recipeStore.getRecipeById(recipeId);
+
+        if (!recipe) {
+          throw new Error('Failed to retrieve recipe after creation');
+        }
+
         if (userId) {
           // Add the recipe to the user's collection
           this.logger.info('Adding recipe to user collection', { userId, recipeId });
           await this.userStore.addRecipeToUser(userId, recipeId);
         }
 
-        // Get the complete recipe to return
-        const newRecipe = await this.recipeStore.getRecipeById(recipeId);
-
         return {
-          ...newRecipe!,
+          ...recipe,
           inUserList: !!userId,
         };
       } catch (extractError) {

@@ -12,27 +12,42 @@ class RecipeService {
   private recipeCache: Recipe[] | null = null;
   private lastFetchTimestamp: number = 0;
   private cacheExpiryMs: number = 5 * 60 * 1000; // 5 minutes cache expiry
+  private fetchPromise: Promise<Recipe[]> | null = null; // Track ongoing requests
 
   /**
    * Fetches all recipes from the API and updates the cache
    */
   private async fetchAllRecipes(): Promise<Recipe[]> {
-    try {
-      const response = await recipeApi.getAll();
-      const recipes = response.recipes;
-
-      if (Array.isArray(recipes)) {
-        this.recipeCache = recipes;
-        this.lastFetchTimestamp = Date.now();
-        return recipes;
-      } else {
-        console.error('Invalid recipe data format:', recipes);
-        return [];
-      }
-    } catch (error) {
-      console.error('Error fetching recipes:', error);
-      throw error;
+    // If there's already an active fetch in progress, return that promise
+    // instead of creating a new request
+    if (this.fetchPromise) {
+      return this.fetchPromise;
     }
+
+    // Create a new fetch promise and store it
+    this.fetchPromise = (async () => {
+      try {
+        const response = await recipeApi.getAll();
+        const recipes = response.recipes;
+
+        if (Array.isArray(recipes)) {
+          this.recipeCache = recipes;
+          this.lastFetchTimestamp = Date.now();
+          return recipes;
+        } else {
+          console.error('Invalid recipe data format:', recipes);
+          return [];
+        }
+      } catch (error) {
+        console.error('Error fetching recipes:', error);
+        throw error;
+      } finally {
+        // Clear the fetch promise once complete
+        this.fetchPromise = null;
+      }
+    })();
+
+    return this.fetchPromise;
   }
 
   /**
@@ -127,7 +142,13 @@ class RecipeService {
   async refreshData(): Promise<void> {
     this.clearCache();
     try {
-      await this.fetchAllRecipes();
+      // If there's already an ongoing fetch, don't create another one
+      if (!this.fetchPromise) {
+        await this.fetchAllRecipes();
+      } else {
+        // Just wait for the existing request to complete
+        await this.fetchPromise;
+      }
     } catch (error) {
       console.error('Error refreshing recipe data:', error);
     }

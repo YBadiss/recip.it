@@ -9,6 +9,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import RecipeImportPage from './pages/RecipeImportPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { ToastContainer } from 'react-toastify';
@@ -29,6 +30,10 @@ function App() {
             <Route path="/404" element={<NotFoundPage />} />
             <Route path="/add" element={<AddRecipePage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+
+            {/* URL import routes - must be before the fallback route */}
+            <Route path="/https://*" element={<RecipeImportPage />} />
+            <Route path="/http://*" element={<RecipeImportPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
