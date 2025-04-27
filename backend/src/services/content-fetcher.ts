@@ -137,7 +137,8 @@ export class YouTubeContentFetcher implements ContentFetcher {
     try {
       // Get transcript using Supadata SDK
       const transcript: Transcript = await this.supadata.youtube.transcript({
-        url: `https://www.youtube.com/watch?v=${videoId}`,
+        videoId: videoId,
+        lang: 'en',
       });
 
       const transcriptText =
@@ -159,7 +160,7 @@ export class YouTubeContentFetcher implements ContentFetcher {
       });
 
       // Format the transcript text
-      const text = `${video.description}\n\n${transcriptText}`;
+      const text = `# Video Transcript\n\n${transcriptText}\n\n# Video Description\n${video.description}\n\n`;
 
       // Get the thumbnail URL from the video metadata
       const imageUrl = video.thumbnail;
@@ -178,6 +179,7 @@ export class YouTubeContentFetcher implements ContentFetcher {
 3. Infer measurements when they are not explicitly stated but shown visually (mentioned as "this much" or similar expressions)
 4. Be attentive to cooking tools that are shown or used but not explicitly named
 5. The recipe title might be mentioned at the beginning, end, or in the context information
+6. Prioritise the transcript over the description.
 `;
 
       return { text, imageUrl, userContext, systemContext };

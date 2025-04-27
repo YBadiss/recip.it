@@ -195,7 +195,8 @@ const HomePage: React.FC = () => {
                     <RecipeCard recipe={recipe} popIntensity="medium" />
                   </Col>
                 ))}
-                {((userRecipesPage === userRecipesTotalPages && userRecipes.length < itemsPerPage) ||
+                {((userRecipesPage === userRecipesTotalPages &&
+                  userRecipes.length < itemsPerPage) ||
                   userRecipesTotal === 0) && (
                   <Col>
                     <AddRecipeCard popIntensity="medium" />
