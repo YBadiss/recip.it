@@ -116,14 +116,14 @@ export class YouTubeContentFetcher implements ContentFetcher {
 
   canFetchContent(url: string): boolean {
     const youtubeRegex =
-      /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})(\S*)?$/;
+      /^(https?:\/\/)?(www\.)?(m\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})(\S*)?$/;
     return youtubeRegex.test(url);
   }
 
   // Helper method to extract YouTube video ID from URL
   private extractVideoId(url: string): string | null {
     const youtubeRegex =
-      /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)?$/;
+      /^(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)?$/;
     const match = url.match(youtubeRegex);
     return match ? match[1] : null;
   }

@@ -24,22 +24,49 @@ export function normalizeUrl(url: string): string {
     const pathname = urlObj.pathname;
 
     // Remove 'www.' prefix
-    const cleanHostname = hostname.startsWith('www.') ? hostname.substring(4) : hostname;
+    let cleanHostname = hostname;
+    if (hostname.startsWith('www.')) {
+      cleanHostname = hostname.substring(4);
+    } else if (hostname.startsWith('m.')) {
+      cleanHostname = hostname.substring(2);
+    }
+
+    // Handle YouTube special cases
+    let cleanPathname = pathname;
+    let youtubeVideoId = null;
+
+    // Special case for YouTube
+    if (cleanHostname === 'youtu.be') {
+      // Convert youtu.be/VIDEO_ID to youtube.com/watch?v=VIDEO_ID
+      youtubeVideoId = pathname.substring(1); // Remove leading slash
+      cleanHostname = 'youtube.com';
+      cleanPathname = '/watch';
+    } else if (cleanHostname === 'youtube.com') {
+      // For youtube.com URLs, extract the v parameter
+      youtubeVideoId = urlObj.searchParams.get('v');
+      cleanPathname = '/watch';
+    }
 
     // Remove tracking parameters
     const searchParams = new URLSearchParams();
-    for (const [key, value] of urlObj.searchParams.entries()) {
-      // Skip common tracking parameters
-      if (
-        !key.startsWith('utm_') &&
-        !['fbclid', 'gclid', '_ga', 'ref', 'source', 'campaign'].includes(key)
-      ) {
-        searchParams.append(key, value);
+
+    // For YouTube videos, only keep the video ID parameter
+    if (youtubeVideoId) {
+      searchParams.append('v', youtubeVideoId);
+    } else {
+      for (const [key, value] of urlObj.searchParams.entries()) {
+        // Skip common tracking parameters
+        if (
+          !key.startsWith('utm_') &&
+          !['fbclid', 'gclid', '_ga', 'ref', 'source', 'campaign'].includes(key)
+        ) {
+          searchParams.append(key, value);
+        }
       }
     }
 
     // Rebuild the URL (ignoring hash fragment)
-    let normalizedUrl = `https://${cleanHostname}${pathname}`;
+    let normalizedUrl = `https://${cleanHostname}${cleanPathname}`;
 
     // Remove trailing slash
     if (normalizedUrl.endsWith('/') && normalizedUrl.length > 8) {
