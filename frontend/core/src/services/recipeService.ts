@@ -1,5 +1,5 @@
-import { Recipe } from '../types/recipe';
-import { recipeApi } from './api';
+import { Recipe } from '../types';
+import { ApiService } from './api';
 
 interface PaginatedRecipes {
   items: Recipe[];
@@ -8,11 +8,16 @@ interface PaginatedRecipes {
   page: number;
 }
 
-class RecipeService {
+export class RecipeService {
+  private apiService: ApiService;
   private recipeCache: Recipe[] | null = null;
   private lastFetchTimestamp: number = 0;
   private cacheExpiryMs: number = 5 * 60 * 1000; // 5 minutes cache expiry
   private fetchPromise: Promise<Recipe[]> | null = null; // Track ongoing requests
+
+  constructor(apiService: ApiService) {
+    this.apiService = apiService;
+  }
 
   /**
    * Fetches all recipes from the API and updates the cache
@@ -27,7 +32,7 @@ class RecipeService {
     // Create a new fetch promise and store it
     this.fetchPromise = (async () => {
       try {
-        const response = await recipeApi.getAll();
+        const response = await this.apiService.getAllRecipes();
         const recipes = response.recipes;
 
         if (Array.isArray(recipes)) {
@@ -168,7 +173,7 @@ class RecipeService {
    */
   async getById(id: string): Promise<Recipe> {
     try {
-      const recipe = await recipeApi.getById(id);
+      const recipe = await this.apiService.getRecipeById(id);
 
       // Update the recipe in cache if it exists
       if (this.recipeCache) {
@@ -188,7 +193,7 @@ class RecipeService {
    */
   async addToUserList(recipeUrl: string): Promise<Recipe> {
     try {
-      const recipe = await recipeApi.addToUserList(recipeUrl);
+      const recipe = await this.apiService.addRecipeToUserList(recipeUrl);
 
       // Update cache
       this.refreshData();
@@ -202,13 +207,13 @@ class RecipeService {
 
   /**
    * Remove recipe from user's list
-   * Updates the cache after removal
+   * Updates cache after removal
    */
   async removeFromUserList(id: string): Promise<void> {
     try {
-      await recipeApi.removeFromUserList(id);
+      await this.apiService.removeRecipeFromUserList(id);
 
-      // Update cache
+      // Update the cache
       this.refreshData();
     } catch (error) {
       console.error(`Error removing recipe with ID ${id} from user list:`, error);
@@ -217,12 +222,11 @@ class RecipeService {
   }
 
   /**
-   * Import a new recipe from URL
-   * Updates cache after import
+   * Import a recipe by URL
    */
   async import(recipeImport: { link: string }): Promise<Recipe> {
     try {
-      const recipe = await recipeApi.import(recipeImport);
+      const recipe = await this.apiService.importRecipe(recipeImport);
 
       // Update cache
       this.refreshData();
@@ -235,12 +239,11 @@ class RecipeService {
   }
 
   /**
-   * Import a new recipe from file upload
-   * Updates cache after import
+   * Import a recipe from a file upload
    */
   async importFile(formData: FormData): Promise<Recipe> {
     try {
-      const recipe = await recipeApi.importFile(formData);
+      const recipe = await this.apiService.importRecipeFromFile(formData);
 
       // Update cache
       this.refreshData();
@@ -251,7 +254,4 @@ class RecipeService {
       throw error;
     }
   }
-}
-
-// Create and export a singleton instance
-export const recipeService = new RecipeService();
+} 

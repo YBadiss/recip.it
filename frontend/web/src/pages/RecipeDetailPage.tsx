@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Badge, ListGroup, Alert, Breadcrumb } from 'react-bootstrap';
-import { Recipe, Ingredient, Material } from '../types/recipe';
-import { recipeService } from '../services/recipeService';
+import { Recipe, Ingredient, Material } from '@recipe/core';
+import { recipeService } from '../services';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 

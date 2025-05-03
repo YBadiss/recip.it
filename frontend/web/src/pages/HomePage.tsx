@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Row, Col, Alert, Button } from 'react-bootstrap';
-import { Recipe } from '../types/recipe';
+import { Recipe } from '@recipe/core';
 import { useAuth } from '../context/AuthContext';
 import RecipeCard from '../components/RecipeCard';
 import AddRecipeCard from '../components/AddRecipeCard';
-import { recipeService } from '../services/recipeService';
+import { recipeService } from '../services';
 
 // Define custom event type
 interface RecipeSearchEvent extends CustomEvent {

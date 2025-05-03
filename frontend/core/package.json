@@ -1,0 +1,17 @@
+{
+  "name": "@recipe/core",
+  "version": "1.0.0",
+  "description": "Core services and types for the recipe application",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5"
+  }
+} 

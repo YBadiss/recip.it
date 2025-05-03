@@ -10,7 +10,7 @@ import {
   ButtonGroup,
 } from 'react-bootstrap';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { recipeService } from '../services/recipeService';
+import { recipeService } from '../services';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const AddRecipePage: React.FC = () => {
