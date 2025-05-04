@@ -40,81 +40,85 @@ export class ApiService {
   private async request<T>(
     method: string,
     path: string,
-    data?: any,
-    customHeaders?: Record<string, string>
+    data?: FormData | Record<string, unknown>,
+    customHeaders?: Record<string, string>,
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
-    
+
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...customHeaders
+      "Content-Type": "application/json",
+      ...customHeaders,
     };
 
     const options: RequestInit = {
       method,
       headers,
-      credentials: 'include', // Important for cookies - this ensures cookies are sent with requests
+      credentials: "include", // Important for cookies - this ensures cookies are sent with requests
     };
 
     // Add body data for non-GET requests if data is provided
-    if (method !== 'GET' && data) {
+    if (method !== "GET" && data) {
       // If it's FormData, don't stringify and let browser set the content type
       if (data instanceof FormData) {
-        delete headers['Content-Type']; // Let browser set this with boundary
+        delete headers["Content-Type"]; // Let browser set this with boundary
         options.body = data;
       } else {
         options.body = JSON.stringify(data);
       }
     }
 
-    try {
-      const response = await fetch(url, options);
-      
-      // Handle unauthorized responses (except for profile endpoint)
-      if (response.status === 401 && !path.includes("/users/profile")) {
-        if (this.authRedirectHandler) {
-          // Get current path to redirect back after login
-          const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
-          this.authRedirectHandler(currentPath);
-        }
-      }
+    const response = await fetch(url, options);
 
-      // For any non-successful response, throw an error
-      if (!response.ok) {
-        const error: ApiErrorResponse = {
-          status: response.status,
-          statusText: response.statusText,
-          message: `Request failed with status ${response.status}`,
-          url: path
-        };
-        throw error;
+    // Handle unauthorized responses (except for profile endpoint)
+    if (response.status === 401 && !path.includes("/users/profile")) {
+      if (this.authRedirectHandler) {
+        // Get current path to redirect back after login
+        const currentPath =
+          typeof window !== "undefined" ? window.location.pathname : "";
+        this.authRedirectHandler(currentPath);
       }
+    }
 
-      // Parse JSON response
-      const responseData = await response.json();
-      return responseData;
-    } catch (error) {
-      // Re-throw any errors
+    // For any non-successful response, throw an error
+    if (!response.ok) {
+      const error: ApiErrorResponse = {
+        status: response.status,
+        statusText: response.statusText,
+        message: `Request failed with status ${response.status}`,
+        url: path,
+      };
       throw error;
     }
+
+    // Parse JSON response
+    const responseData = await response.json();
+    return responseData;
   }
 
   // Authentication API functions
   // Register a new user
   async register(userData: RegisterData): Promise<User> {
-    const response = await this.request<UserResponse>('POST', '/users/register', userData);
+    const response = await this.request<UserResponse>(
+      "POST",
+      "/users/register",
+      userData,
+    );
     return response.user;
   }
 
   // Login user
   async login(credentials: LoginCredentials): Promise<User> {
-    const response = await this.request<UserResponse>('POST', '/users/login', credentials);
+    const response = await this.request<UserResponse>(
+      "POST",
+      "/users/login",
+      credentials,
+    );
     return response.user;
   }
 
   // Logout user
   async logout(): Promise<void> {
-    await this.request('POST', '/users/logout');
+    await this.request("POST", "/users/logout");
   }
 
   // Get current user profile
@@ -128,7 +132,10 @@ export class ApiService {
     // Create a new request promise
     this.pendingProfileRequest = (async () => {
       try {
-        const response = await this.request<UserResponse>('GET', '/users/profile');
+        const response = await this.request<UserResponse>(
+          "GET",
+          "/users/profile",
+        );
         return response.user;
       } catch (error: unknown) {
         // For unauthorized errors, just handle gracefully
@@ -149,24 +156,31 @@ export class ApiService {
   // API functions for recipes
   // Get all recipes with optional params (search query, pagination, etc.)
   async getAllRecipes(): Promise<RecipesResponse> {
-    return this.request<RecipesResponse>('GET', '/recipes');
+    return this.request<RecipesResponse>("GET", "/recipes");
   }
 
   // Get a single recipe by ID
   async getRecipeById(id: string): Promise<Recipe> {
-    const response = await this.request<RecipeResponse>('GET', `/recipes/${id}`);
+    const response = await this.request<RecipeResponse>(
+      "GET",
+      `/recipes/${id}`,
+    );
     return response.recipe;
   }
 
   // Import a new recipe from URL
   async importRecipe(recipeImport: RecipeImport): Promise<Recipe> {
-    const response = await this.request<RecipeResponse>('POST', '/recipes', recipeImport);
+    const response = await this.request<RecipeResponse>(
+      "POST",
+      "/recipes",
+      recipeImport,
+    );
     return response.recipe;
   }
 
   // Add recipe to user's list
   async addRecipeToUserList(recipeUrl: string): Promise<Recipe> {
-    const response = await this.request<RecipeResponse>('POST', '/recipes', {
+    const response = await this.request<RecipeResponse>("POST", "/recipes", {
       link: recipeUrl,
     });
     return response.recipe;
@@ -175,8 +189,8 @@ export class ApiService {
   // Import a new recipe from file upload
   async importRecipeFromFile(formData: FormData): Promise<Recipe> {
     const response = await this.request<RecipeResponse>(
-      'POST',
-      '/recipes/upload',
+      "POST",
+      "/recipes/upload",
       formData,
       // No need to set content-type, browser will set it with boundary
     );
@@ -185,7 +199,7 @@ export class ApiService {
 
   // Remove recipe from user's list
   async removeRecipeFromUserList(id: string): Promise<void> {
-    await this.request('POST', `/recipes/${id}/remove`);
+    await this.request("POST", `/recipes/${id}/remove`);
   }
 }
 
