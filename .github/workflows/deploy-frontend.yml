@@ -35,4 +35,5 @@ jobs:
         run: |
           cd frontend
           npm ci
-          npm run deploy
+          npm run build:web
+          npm run deploy:web
