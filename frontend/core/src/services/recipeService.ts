@@ -1,5 +1,6 @@
 import { Recipe } from "../types";
 import { ApiService } from "./api";
+import { remove as removeDiacritics } from "diacritics";
 
 interface PaginatedRecipes {
   items: Recipe[];
@@ -8,15 +9,74 @@ interface PaginatedRecipes {
   page: number;
 }
 
+// Interface for searchable recipe data
+interface SearchableRecipe {
+  id: string;
+  searchText: string; // Combined normalized text of all searchable fields
+}
+
 export class RecipeService {
   private apiService: ApiService;
-  private recipeCache: Recipe[] | null = null;
+  private recipeCache: Recipe[] = [];
+  private searchableRecipes: SearchableRecipe[] = []; // New cache for searchable data
   private lastFetchTimestamp: number = 0;
   private cacheExpiryMs: number = 5 * 60 * 1000; // 5 minutes cache expiry
   private fetchPromise: Promise<Recipe[]> | null = null; // Track ongoing requests
 
   constructor(apiService: ApiService) {
     this.apiService = apiService;
+  }
+
+  /**
+   * Creates a searchable version of the recipes with all text fields combined
+   */
+  private createSearchableRecipes(recipes: Recipe[]): SearchableRecipe[] {
+    return recipes.map((recipe) => {
+      // Collect all searchable text from the recipe
+      const searchParts: string[] = [
+        recipe.title || "",
+        recipe.description || "",
+      ];
+
+      // Add ingredients text
+      if (recipe.ingredients && recipe.ingredients.length > 0) {
+        recipe.ingredients.forEach((ingredient) => {
+          searchParts.push(ingredient.name || "");
+          searchParts.push(ingredient.quantity || "");
+          searchParts.push(ingredient.unit || "");
+        });
+      }
+
+      // Add materials text
+      if (recipe.materials && recipe.materials.length > 0) {
+        recipe.materials.forEach((material) => {
+          searchParts.push(material.name || "");
+          searchParts.push(material.description || "");
+        });
+      }
+
+      // Add steps text
+      if (recipe.steps && recipe.steps.length > 0) {
+        recipe.steps.forEach((step) => {
+          searchParts.push(step.action || "");
+        });
+      }
+
+      // Add tags
+      if (recipe.tags && recipe.tags.length > 0) {
+        recipe.tags.forEach((tag) => {
+          searchParts.push(tag || "");
+        });
+      }
+
+      // Join all parts, lowercase, and remove diacritics
+      const searchText = removeDiacritics(searchParts.join(" ").toLowerCase());
+
+      return {
+        id: recipe.id!,
+        searchText,
+      };
+    });
   }
 
   /**
@@ -37,6 +97,7 @@ export class RecipeService {
 
         if (Array.isArray(recipes)) {
           this.recipeCache = recipes;
+          this.searchableRecipes = this.createSearchableRecipes(recipes);
           this.lastFetchTimestamp = Date.now();
           return recipes;
         } else {
@@ -83,17 +144,25 @@ export class RecipeService {
     communityRecipes: PaginatedRecipes;
   }> {
     // First, ensure we have recipes
-    const recipes = await this.getAllRecipes();
+    await this.getAllRecipes();
 
-    // Filter based on search query
-    const queryFilteredRecipes = query
-      ? recipes.filter(
-          (recipe) =>
-            recipe.title.toLowerCase().includes(query.toLowerCase()) ||
-            (recipe.description &&
-              recipe.description.toLowerCase().includes(query.toLowerCase())),
-        )
-      : recipes;
+    // Convert empty strings to null for cleaner code
+    const normalizedQuery = removeDiacritics(query.trim().toLowerCase());
+
+    // Get a Map of recipes by ID for efficient lookup
+    const recipesById = new Map(
+      this.recipeCache.map((recipe) => [recipe.id, recipe]),
+    );
+
+    // Filter based on search query using the searchable text
+    const queryFilteredRecipes = normalizedQuery
+      ? this.searchableRecipes
+          .filter((searchableRecipe) =>
+            searchableRecipe.searchText.includes(normalizedQuery),
+          )
+          // Look up the full recipe objects using the IDs
+          .map((searchableRecipe) => recipesById.get(searchableRecipe.id)!)
+      : this.recipeCache;
 
     // Split into user and community recipes
     const userRecipesAll = isAuthenticated
@@ -143,7 +212,8 @@ export class RecipeService {
    * Clears the recipe cache
    */
   private clearCache(): void {
-    this.recipeCache = null;
+    this.recipeCache = [];
+    this.searchableRecipes = [];
     this.lastFetchTimestamp = 0;
   }
 
@@ -171,6 +241,14 @@ export class RecipeService {
       this.recipeCache = this.recipeCache.map((r) =>
         r.id === recipe.id ? recipe : r,
       );
+
+      // Also update in the searchable cache
+      if (this.searchableRecipes) {
+        const newSearchableRecipe = this.createSearchableRecipes([recipe])[0];
+        this.searchableRecipes = this.searchableRecipes.map((r) =>
+          r.id === recipe.id ? newSearchableRecipe : r,
+        );
+      }
     } else {
       this.refreshData();
     }
