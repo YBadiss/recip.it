@@ -75,7 +75,6 @@ const AddRecipePage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      console.log('Importing URL:', urlToImport);
       const recipe = await recipeService.import({ link: urlToImport });
 
       if (recipe && recipe.id) {

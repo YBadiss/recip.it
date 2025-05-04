@@ -1,15 +1,19 @@
 {
-  "name": "recipe-monorepo",
+  "name": "recipit-monorepo",
   "version": "1.0.0",
-  "description": "Monorepo for Recipe application",
+  "description": "Monorepo for Recip.it",
   "private": true,
   "workspaces": [
     "core",
     "web"
   ],
   "scripts": {
-    "build": "tsc --build web",
-    "dev": "cd web && npm run dev"
+    "lint": "npm run lint --workspace=core && npm run lint --workspace=web",
+    "lint:fix": "npm run lint:fix --workspace=core && npm run lint:fix --workspace=web",
+    "format": "npm run format --workspace=core && npm run format --workspace=web",
+    "build:web": "npm run build --workspace=core && npm run build --workspace=web",
+    "dev:web": "npm run dev --workspace=web",
+    "deploy:web": "npm run deploy --workspace=web"
   },
   "devDependencies": {
     "typescript": "^5.0.2"

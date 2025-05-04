@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Row, Col, Alert, Button } from 'react-bootstrap';
-import { Recipe } from '@recipe/core';
+import { Recipe } from '@recipit/core';
 import { useAuth } from '../context/AuthContext';
 import RecipeCard from '../components/RecipeCard';
 import AddRecipeCard from '../components/AddRecipeCard';

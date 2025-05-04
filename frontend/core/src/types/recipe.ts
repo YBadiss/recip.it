@@ -37,4 +37,4 @@ export interface Recipe {
 
 export interface RecipeImport {
   link: string;
-} 
+}

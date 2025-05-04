@@ -1,5 +1,5 @@
-import { Recipe } from '../types';
-import { ApiService } from './api';
+import { Recipe } from "../types";
+import { ApiService } from "./api";
 
 interface PaginatedRecipes {
   items: Recipe[];
@@ -40,11 +40,11 @@ export class RecipeService {
           this.lastFetchTimestamp = Date.now();
           return recipes;
         } else {
-          console.error('Invalid recipe data format:', recipes);
+          console.error("Invalid recipe data format:", recipes);
           return [];
         }
       } catch (error) {
-        console.error('Error fetching recipes:', error);
+        console.error("Error fetching recipes:", error);
         throw error;
       } finally {
         // Clear the fetch promise once complete
@@ -73,11 +73,11 @@ export class RecipeService {
    * Filters and paginates recipes based on query, authentication, and pagination settings
    */
   async getFilteredRecipes(
-    query: string = '',
+    query: string = "",
     isAuthenticated: boolean = false,
     userPage: number = 1,
     communityPage: number = 1,
-    itemsPerPage: number = 6
+    itemsPerPage: number = 6,
   ): Promise<{
     userRecipes: PaginatedRecipes;
     communityRecipes: PaginatedRecipes;
@@ -88,19 +88,20 @@ export class RecipeService {
     // Filter based on search query
     const queryFilteredRecipes = query
       ? recipes.filter(
-          recipe =>
+          (recipe) =>
             recipe.title.toLowerCase().includes(query.toLowerCase()) ||
-            (recipe.description && recipe.description.toLowerCase().includes(query.toLowerCase()))
+            (recipe.description &&
+              recipe.description.toLowerCase().includes(query.toLowerCase())),
         )
       : recipes;
 
     // Split into user and community recipes
     const userRecipesAll = isAuthenticated
-      ? queryFilteredRecipes.filter(recipe => recipe.inUserList)
+      ? queryFilteredRecipes.filter((recipe) => recipe.inUserList)
       : [];
 
     const communityRecipesAll = isAuthenticated
-      ? queryFilteredRecipes.filter(recipe => !recipe.inUserList)
+      ? queryFilteredRecipes.filter((recipe) => !recipe.inUserList)
       : queryFilteredRecipes;
 
     // Calculate pagination for user recipes
@@ -111,7 +112,10 @@ export class RecipeService {
 
     // Calculate pagination for community recipes
     const communityTotal = communityRecipesAll.length;
-    const communityTotalPages = Math.max(1, Math.ceil(communityTotal / itemsPerPage));
+    const communityTotalPages = Math.max(
+      1,
+      Math.ceil(communityTotal / itemsPerPage),
+    );
     const safeCommunityPage = Math.min(communityPage, communityTotalPages);
     const communityStart = (safeCommunityPage - 1) * itemsPerPage;
 
@@ -124,7 +128,10 @@ export class RecipeService {
         page: safeUserPage,
       },
       communityRecipes: {
-        items: communityRecipesAll.slice(communityStart, communityStart + itemsPerPage),
+        items: communityRecipesAll.slice(
+          communityStart,
+          communityStart + itemsPerPage,
+        ),
         total: communityTotal,
         totalPages: communityTotalPages,
         page: safeCommunityPage,
@@ -155,13 +162,15 @@ export class RecipeService {
         await this.fetchPromise;
       }
     } catch (error) {
-      console.error('Error refreshing recipe data:', error);
+      console.error("Error refreshing recipe data:", error);
     }
   }
 
   private updateRecipeInCache(recipe: Recipe): void {
     if (this.recipeCache) {
-      this.recipeCache = this.recipeCache.map(r => (r.id === recipe.id ? recipe : r));
+      this.recipeCache = this.recipeCache.map((r) =>
+        r.id === recipe.id ? recipe : r,
+      );
     } else {
       this.refreshData();
     }
@@ -200,7 +209,7 @@ export class RecipeService {
 
       return recipe;
     } catch (error) {
-      console.error('Error adding recipe to user list:', error);
+      console.error("Error adding recipe to user list:", error);
       throw error;
     }
   }
@@ -216,7 +225,10 @@ export class RecipeService {
       // Update the cache
       this.refreshData();
     } catch (error) {
-      console.error(`Error removing recipe with ID ${id} from user list:`, error);
+      console.error(
+        `Error removing recipe with ID ${id} from user list:`,
+        error,
+      );
       throw error;
     }
   }
@@ -233,7 +245,7 @@ export class RecipeService {
 
       return recipe;
     } catch (error) {
-      console.error('Error importing recipe:', error);
+      console.error("Error importing recipe:", error);
       throw error;
     }
   }
@@ -250,8 +262,8 @@ export class RecipeService {
 
       return recipe;
     } catch (error) {
-      console.error('Error importing recipe from file:', error);
+      console.error("Error importing recipe from file:", error);
       throw error;
     }
   }
-} 
+}

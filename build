@@ -1,5 +1,5 @@
 #!/bin/bash
 
 (cd backend && npm run build)
-(cd frontend && npm run build)
+(cd frontend && npm run build:web)
 (cd admin && npm run build)

@@ -7,7 +7,7 @@ import React, {
   useCallback,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthState, createServices } from '@recipe/core';
+import { AuthState, createServices } from '@recipit/core';
 
 // Use the createServices factory to get properly initialized services
 const { authService } = createServices(import.meta.env.VITE_API_URL || '/api');
@@ -48,19 +48,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (username: string, password: string) => {
-    try {
-      await authService.login(username, password);
-    } catch (error) {
-      throw error;
-    }
+    await authService.login(username, password);
   };
 
   const register = async (username: string, password: string) => {
-    try {
-      await authService.register(username, password);
-    } catch (error) {
-      throw error;
-    }
+    await authService.register(username, password);
   };
 
   const logout = async () => {

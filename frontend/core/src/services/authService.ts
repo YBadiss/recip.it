@@ -1,5 +1,6 @@
-import { AuthState } from '../types';
-import { ApiService } from './api';
+import { AuthState } from "../types";
+import { ApiService } from "./api";
+import { RecipeService } from "./recipeService";
 
 const defaultAuthState: AuthState = {
   user: null,
@@ -13,16 +14,11 @@ export class AuthService {
   private stateChangeCallbacks: ((state: AuthState) => void)[] = [];
   private redirectHandler: ((returnPath?: string) => void) | null = null;
   private apiService: ApiService;
-  private recipeService: any; // Will be set later
+  private recipeService: RecipeService; // Will be set later
 
-  constructor(apiService: ApiService) {
+  constructor(apiService: ApiService, recipeService: RecipeService) {
     this.apiService = apiService;
-  }
-
-  // Set recipe service reference to avoid circular dependencies
-  setRecipeService(recipeService: any): void {
     this.recipeService = recipeService;
-    this.checkAuthStatus();
   }
 
   // Register a callback for state changes
@@ -30,17 +26,19 @@ export class AuthService {
     this.stateChangeCallbacks.push(callback);
     // Immediately call with current state
     callback(this.state);
-    
+
     // Return unsubscribe function
     return () => {
-      this.stateChangeCallbacks = this.stateChangeCallbacks.filter(cb => cb !== callback);
+      this.stateChangeCallbacks = this.stateChangeCallbacks.filter(
+        (cb) => cb !== callback,
+      );
     };
   }
 
   // Update state and notify subscribers
   private setState(newState: AuthState): void {
     this.state = newState;
-    this.stateChangeCallbacks.forEach(callback => callback(this.state));
+    this.stateChangeCallbacks.forEach((callback) => callback(this.state));
   }
 
   // Get current state
@@ -50,10 +48,6 @@ export class AuthService {
 
   // Check if user is already logged in
   public async checkAuthStatus(): Promise<void> {
-    if (!this.recipeService) {
-      return; // Wait until recipe service is set
-    }
-
     try {
       const user = await this.apiService.getCurrentUser();
 
@@ -86,7 +80,7 @@ export class AuthService {
 
   public async login(username: string, password: string): Promise<void> {
     this.setState({ ...this.state, isLoading: true, error: null });
-    
+
     try {
       const user = await this.apiService.login({ username, password });
 
@@ -100,13 +94,13 @@ export class AuthService {
 
         await this.recipeService.refreshData();
       } else {
-        throw new Error('Invalid user data received from server');
+        throw new Error("Invalid user data received from server");
       }
     } catch (error) {
       this.setState({
         ...this.state,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Login failed',
+        error: error instanceof Error ? error.message : "Login failed",
       });
       throw error;
     }
@@ -114,7 +108,7 @@ export class AuthService {
 
   public async register(username: string, password: string): Promise<void> {
     this.setState({ ...this.state, isLoading: true, error: null });
-    
+
     try {
       const user = await this.apiService.register({ username, password });
 
@@ -126,13 +120,13 @@ export class AuthService {
           error: null,
         });
       } else {
-        throw new Error('Invalid user data received from server');
+        throw new Error("Invalid user data received from server");
       }
     } catch (error) {
       this.setState({
         ...this.state,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Registration failed',
+        error: error instanceof Error ? error.message : "Registration failed",
       });
       throw error;
     }
@@ -140,7 +134,7 @@ export class AuthService {
 
   public async logout(): Promise<void> {
     this.setState({ ...this.state, isLoading: true });
-    
+
     try {
       await this.apiService.logout();
       this.setState({
@@ -172,4 +166,4 @@ export class AuthService {
       this.redirectHandler(returnPath);
     }
   }
-} 
+}

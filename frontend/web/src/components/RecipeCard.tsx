@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, Badge, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { Recipe } from '@recipe/core';
+import { Recipe } from '@recipit/core';
 import './RecipeCard.css';
 
 interface RecipeCardProps {

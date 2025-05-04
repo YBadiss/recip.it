@@ -9,8 +9,6 @@ const RecipeImportPage: React.FC = () => {
     // Get the full path
     const fullPath = location.pathname;
 
-    console.log('Full path:', fullPath);
-
     // Extract the URL to import (remove the leading slash)
     // The path will be something like "/https://example.com/recipe"
     let importUrl = fullPath.startsWith('/http') ? fullPath.substring(1) : '';
@@ -20,8 +18,6 @@ const RecipeImportPage: React.FC = () => {
       // Check if the extracted URL already has query parameters
       importUrl += importUrl.includes('?') ? '&' + location.search.substring(1) : location.search;
     }
-
-    console.log('Import URL:', importUrl);
 
     // Check if the URL is valid
     if (importUrl && importUrl.startsWith('http')) {

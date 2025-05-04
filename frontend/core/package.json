@@ -1,17 +1,26 @@
 {
-  "name": "@recipe/core",
+  "name": "@recipit/core",
   "version": "1.0.0",
-  "description": "Core services and types for the recipe application",
+  "description": "Core services and types for all frontends of Recip.it",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write 'src/**/*.{ts,tsx,css}'",
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc",
     "watch": "tsc --watch"
   },
   "dependencies": {
-    "axios": "^1.6.0"
+    "axios": "^1.9.0"
   },
   "devDependencies": {
+    "@types/axios": "^0.14.4",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.45.0",
+    "eslint-config-prettier": "^9.0.0",
+    "prettier": "^3.0.3",
     "typescript": "^4.9.5"
   }
-} 
+}
