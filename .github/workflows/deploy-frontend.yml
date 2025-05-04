@@ -1,4 +1,4 @@
-name: Deploy Frontend
+name: Deploy Frontend Web
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy Frontend
+    name: Deploy Frontend Web
     runs-on: ubuntu-latest
     
     steps:
@@ -31,7 +31,7 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H 167.71.143.97 >> ~/.ssh/known_hosts
           
-      - name: Deploy Frontend
+      - name: Deploy Frontend Web
         run: |
           cd frontend
           npm ci

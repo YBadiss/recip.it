@@ -13,6 +13,7 @@
     "format": "npm run format --workspace=core && npm run format --workspace=web",
     "build:web": "npm run build --workspace=core && npm run build --workspace=web",
     "dev:web": "npm run dev --workspace=web",
+    "preview:web": "npm run preview --workspace=web",
     "deploy:web": "npm run deploy --workspace=web"
   },
   "devDependencies": {
