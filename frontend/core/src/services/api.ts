@@ -40,7 +40,7 @@ export class ApiService {
   private async request<T>(
     method: string,
     path: string,
-    data?: FormData | Record<string, unknown>,
+    data?: unknown,
     customHeaders?: Record<string, string>,
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
