@@ -1,0 +1,119 @@
+server {
+    server_name recipit.me www.recipit.me;
+
+    root /var/www/recip.it/frontend;
+    index index.html index.htm;
+
+    # Add this block to handle URLs with "http://" or "https://" in the path
+    location ~ ^/https?:// {
+        rewrite ^/(.*)$ /index.html break;
+    }
+
+    location / {
+        try_files $uri $uri/ @react;
+    }
+
+    location @react {
+        rewrite ^.*$ /index.html break;
+    }
+
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+    }
+
+    error_page 404 /index.html;
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/recipit.me/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/recipit.me/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+
+server {
+    server_name api.recipit.me;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    client_max_body_size 50M;
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/api.recipit.me/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/api.recipit.me/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+
+server {
+    server_name admin.recipit.me www.admin.recipit.me;
+
+    root /var/www/recip.it/admin;
+    index index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ @react;
+    }
+
+    location @react {
+        rewrite ^.*$ /index.html break;
+    }
+
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+    }
+
+    error_page 404 /index.html;
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/admin.recipit.me/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/admin.recipit.me/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+
+
+server {
+    if ($host = www.recipit.me) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+    if ($host = recipit.me) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+    listen 80;
+    server_name recipit.me www.recipit.me;
+    return 404; # managed by Certbot
+}
+
+
+server {
+    if ($host = api.recipit.me) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+    listen 80;
+    server_name api.recipit.me;
+    return 404; # managed by Certbot
+}
+
+
+server {
+    if ($host = admin.recipit.me) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+    server_name admin.recipit.me www.admin.recipit.me;
+    listen 80;
+    return 404; # managed by Certbot
+}
+
