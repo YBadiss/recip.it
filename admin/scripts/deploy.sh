@@ -1,17 +1,16 @@
 #!/bin/bash
-set -e
+# Uploads the already-built dist/ to the droplet, swaps the live symlink and keeps the 3 latest deploys.
+# CI builds (with the VITE_* URLs) in an earlier step, before the SSH key is loaded.
+set -euo pipefail
 
-# Build the project
-VITE_API_URL=https://api.recipit.me VITE_FRONTEND_URL=https://recipit.me npm run build
-
+SERVER="${DEPLOY_USER:-root}@${DEPLOY_HOST:-167.71.143.97}"
+BASE=/var/www/recip.it
+NAME="admin"
 timestamp=$(date +%s)
 
-# Deploy the project
-scp -r dist/* root@167.71.143.97:/var/www/recip.it/admin-${timestamp}
-scp package*.json root@167.71.143.97:/var/www/recip.it/admin-${timestamp}/
+[ -d dist ] || { echo "dist/ not found: build first" >&2; exit 1; }
 
-# Install dependencies
-ssh root@167.71.143.97 "cd /var/www/recip.it/admin-${timestamp} && npm i --omit=dev"
-
-# Create a new symlink
-ssh root@167.71.143.97 "rm /var/www/recip.it/admin && ln -s /var/www/recip.it/admin-${timestamp} /var/www/recip.it/admin"
+ssh "$SERVER" "mkdir -p $BASE/$NAME-$timestamp && chmod 755 $BASE/$NAME-$timestamp"
+scp -r dist/* "$SERVER:$BASE/$NAME-$timestamp/"
+ssh "$SERVER" "ln -sfn $BASE/$NAME-$timestamp $BASE/$NAME"
+ssh "$SERVER" "cd $BASE && ls -d $NAME-[0-9][0-9][0-9]* | sort -t- -k2 -n | head -n -3 | xargs -r -t rm -rf --"
