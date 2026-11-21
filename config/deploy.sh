@@ -1,22 +1,18 @@
 #!/bin/bash
+# Uploads nginx-config to the droplet, tests it (rolling back on failure) and reloads nginx.
+set -euo pipefail
 
-SSH_OPTIONS="$@"
-echo "$SSH_OPTIONS"
+SERVER="${DEPLOY_USER:-root}@${DEPLOY_HOST:-167.71.143.97}"
+REMOTE=/etc/nginx/sites-available/recipit
+backup="nginx-config-$(date +%s).bak"
 
-timestamp=$(date +%s)
+scp "$SERVER:$REMOTE" "$backup"
+scp nginx-config "$SERVER:$REMOTE"
 
-# Deploy to root of badyass.xyz (home directory)
-scp $SSH_OPTIONS root@167.71.143.97:/etc/nginx/sites-available/recipit nginx-config-${timestamp}
-scp $SSH_OPTIONS nginx-config root@167.71.143.97:/etc/nginx/sites-available/recipit
-
-# Test nginx config. Make sure to reset the default config file after testing if we failed.
-ssh $SSH_OPTIONS root@167.71.143.97 "nginx -t"
-
-if [ $? -ne 0 ]; then
-    echo "Nginx config test failed. Rolling back to previous config."
-    scp $SSH_OPTIONS nginx-config-${timestamp} root@167.71.143.97:/etc/nginx/sites-available/recipit
+if ! ssh "$SERVER" "sudo -n nginx -t"; then
+    echo "nginx config test failed, rolling back to the previous config." >&2
+    scp "$backup" "$SERVER:$REMOTE"
     exit 1
 fi
 
-# Reload nginx
-ssh $SSH_OPTIONS root@167.71.143.97 "nginx -s reload"
+ssh "$SERVER" "sudo -n systemctl reload nginx"

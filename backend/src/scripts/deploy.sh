@@ -1,19 +1,24 @@
 #!/bin/bash
-set -e
+# Uploads the already-built dist/ (CI runs `npm run build` before loading the SSH key), installs runtime
+# dependencies on the droplet and (re)starts the API under PM2 from the new directory.
+set -euo pipefail
 
-# Build the project
-npm run build
-
+SERVER="${DEPLOY_USER:-root}@${DEPLOY_HOST:-167.71.143.97}"
+BASE=/var/www/recip.it
+ENV_FILE="${RECIPIT_ENV_FILE:-/root/recip.it/backend/.env}"
 timestamp=$(date +%s)
+DIR="$BASE/backend-$timestamp"
 
-# Deploy the project
-scp -r dist/* root@167.71.143.97:/var/www/recip.it/backend-${timestamp}
-scp package*.json root@167.71.143.97:/var/www/recip.it/backend-${timestamp}/
-ssh root@167.71.143.97 "ln -s /root/recip.it/backend/.env /var/www/recip.it/backend-${timestamp}/.env"
+[ -d dist ] || { echo "dist/ not found: run npm run build first" >&2; exit 1; }
 
-# Install dependencies
-ssh root@167.71.143.97 "cd /var/www/recip.it/backend-${timestamp} && npm i --omit=dev"
+ssh "$SERVER" "mkdir -p $DIR"
+scp -r dist/* package.json package-lock.json "$SERVER:$DIR/"
+ssh "$SERVER" "ln -s $ENV_FILE $DIR/.env && cd $DIR && npm ci --omit=dev --no-audit --no-fund"
+ssh "$SERVER" "ln -sfn $DIR $BASE/backend"
 
-# Create a new symlink
-ssh root@167.71.143.97 "rm /var/www/recip.it/backend && ln -s /var/www/recip.it/backend-${timestamp} /var/www/recip.it/backend"
-ssh root@167.71.143.97 "pm2 restart recipi-backend && sleep 1 && pm2 logs recipi-backend --nostream"
+# Start from the new directory: `pm2 restart` would keep running the old one (dotenv reads .env from the cwd).
+# `pm2 save` so the process comes back after a reboot.
+ssh "$SERVER" "pm2 delete recipi-backend >/dev/null 2>&1 || true; cd $DIR && pm2 start index.js --name recipi-backend && pm2 save"
+ssh "$SERVER" "sleep 2 && pm2 logs recipi-backend --lines 20 --nostream"
+
+ssh "$SERVER" "cd $BASE && ls -d backend-[0-9][0-9][0-9]* | sort -t- -k2 -n | head -n -3 | xargs -r -t rm -rf --"
