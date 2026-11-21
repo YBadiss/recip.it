@@ -49,12 +49,13 @@ async function assertPublicUrl(url: URL) {
 /** GETs a public web page as text, following redirects and re-checking each hop. */
 export async function fetchPage(
   rawUrl: string,
+  extraHeaders: Record<string, string> = {},
 ): Promise<{ url: string; html: string }> {
   let url = new URL(rawUrl)
   for (let hop = 0; hop < 5; hop++) {
     await assertPublicUrl(url)
     const response = await fetch(url, {
-      headers: BROWSER_HEADERS,
+      headers: { ...BROWSER_HEADERS, ...extraHeaders },
       redirect: 'manual',
       signal: AbortSignal.timeout(20_000),
     })

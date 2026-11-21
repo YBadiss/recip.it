@@ -1,5 +1,5 @@
 // Calls the real model and services. Skipped unless RUN_LIVE_TESTS=1 (npm run test:live), and reads
-// LLM_MODEL, the provider API key and SUPADATA_API_KEY from the environment (e.g. app/.env).
+// LLM_MODEL, the provider API key and ELEVENLABS_API_KEY from the environment (e.g. app/.env).
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -16,7 +16,7 @@ describe.skipIf(!live)('live extraction', () => {
     const uploads = await fs.mkdtemp(path.join(os.tmpdir(), 'recipit-live-'))
     return new RecipeService(new Store(openDatabase(':memory:')), {
       model: createRecipeModel(process.env.LLM_MODEL || 'openai:gpt-5-mini'),
-      supadataApiKey: process.env.SUPADATA_API_KEY || '',
+      elevenlabsApiKey: process.env.ELEVENLABS_API_KEY || '',
       saveImage: async (name, data) => {
         await fs.writeFile(path.join(uploads, name), data)
         return `/uploads/${name}`
@@ -35,15 +35,15 @@ describe.skipIf(!live)('live extraction', () => {
     expect(recipe.steps.some((s) => s.ingredients.length > 0)).toBe(true)
   })
 
-  it.skipIf(!process.env.SUPADATA_API_KEY)(
-    'imports a YouTube video',
-    { timeout: 180_000 },
-    async () => {
-      const recipe = await (
-        await service()
-      ).importUrl('https://www.youtube.com/watch?v=rDEnIFrJJ9c')
-      expect(recipe.ingredients.length).toBeGreaterThan(2)
-      expect(recipe.imageUrl).toMatch(/^https:/)
-    },
-  )
+  // Uses the transcript when ELEVENLABS_API_KEY is set, the video description alone otherwise.
+  it.each([
+    'https://www.youtube.com/watch?v=UGsvfsrP2fo',
+    'https://www.youtube.com/watch?v=dkIBr4jN54I',
+  ])('imports the YouTube video %s', { timeout: 240_000 }, async (url) => {
+    const recipe = await (await service()).importUrl(url)
+    console.log(JSON.stringify(recipe, null, 2))
+    expect(recipe.ingredients.length).toBeGreaterThan(2)
+    expect(recipe.steps.length).toBeGreaterThan(2)
+    expect(recipe.imageUrl).toMatch(/^https:/)
+  })
 })

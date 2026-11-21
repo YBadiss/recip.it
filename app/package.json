@@ -24,7 +24,6 @@
     "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
-    "@supadata/js": "1.4.0",
     "@tanstack/ai": "1.8.0",
     "@tanstack/ai-anthropic": "1.2.1",
     "@tanstack/ai-gemini": "1.3.0",

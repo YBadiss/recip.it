@@ -18,7 +18,7 @@ export type { UploadedFile } from './types'
 
 export interface ExtractionDeps {
   model: RecipeModel
-  supadataApiKey: string
+  elevenlabsApiKey: string
   saveImage: SaveImage
 }
 
@@ -34,7 +34,7 @@ export async function extractFromUrl(
   deps: ExtractionDeps,
 ): Promise<RecipeContent> {
   const source = isVideoUrl(url)
-    ? await fetchVideo(url, deps.supadataApiKey)
+    ? await fetchVideo(url, deps.elevenlabsApiKey)
     : await fetchWebPage(url)
   return extract(source, deps.model)
 }

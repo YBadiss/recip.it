@@ -29,7 +29,7 @@ export const config = {
   get llmModel() {
     return process.env.LLM_MODEL || 'openai:gpt-5-mini'
   },
-  get supadataApiKey() {
-    return process.env.SUPADATA_API_KEY || ''
+  get elevenlabsApiKey() {
+    return process.env.ELEVENLABS_API_KEY || ''
   },
 }
