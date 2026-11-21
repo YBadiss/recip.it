@@ -71,7 +71,7 @@ sqlite3 "$DATA_FOLDER/recipes.db" "UPDATE users SET authorized_endpoints = '[\"*
 
 Pushing to `main` runs [`deploy-app.yml`](.github/workflows/deploy-app.yml): typecheck, lint and tests,
 then a Linux build uploaded by [`app/scripts/deploy.sh`](app/scripts/deploy.sh), which starts it under PM2
-on port 3000 with the server's env file (`RECIPIT_ENV_FILE`, default `/root/recip.it/backend/.env`).
+on port 3000 with the server's env file (`RECIPIT_ENV_FILE`, default `/home/deploy/secrets/recipit-backend.env`).
 [`config/nginx-config`](config/nginx-config) (deployed by `deploy-config.yml`) proxies `recipit.me` to the
 app and redirects the old `api.` and `admin.` subdomains.
 

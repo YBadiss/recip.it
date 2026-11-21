@@ -6,7 +6,7 @@ set -euo pipefail
 SERVER="${DEPLOY_USER:-root}@${DEPLOY_HOST:-167.71.143.97}"
 BASE=/var/www/recip.it
 # Defaults to the old backend's env file, so JWT_SECRET, DATA_FOLDER and the API keys carry over.
-ENV_FILE="${RECIPIT_ENV_FILE:-/root/recip.it/backend/.env}"
+ENV_FILE="${RECIPIT_ENV_FILE:-/home/deploy/secrets/recipit-backend.env}"
 NAME=recipit
 timestamp=$(date +%s)
 DIR="$BASE/app-$timestamp"
