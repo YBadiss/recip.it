@@ -4,6 +4,14 @@ server {
     root /var/www/recip.it/frontend;
     index index.html index.htm;
 
+    # Security headers. nginx drops server-level add_header in any location that sets its own,
+    # so keep all add_header lines at this level.
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "frame-ancestors 'self'" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+
     # Add this block to handle URLs with "http://" or "https://" in the path
     location ~ ^/https?:// {
         rewrite ^/(.*)$ /index.html break;
@@ -34,6 +42,14 @@ server {
 server {
     server_name api.recipit.me;
 
+    # Security headers. nginx drops server-level add_header in any location that sets its own,
+    # so keep all add_header lines at this level.
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "frame-ancestors 'self'" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
@@ -57,6 +73,14 @@ server {
 
     root /var/www/recip.it/admin;
     index index.html index.htm;
+
+    # Security headers. nginx drops server-level add_header in any location that sets its own,
+    # so keep all add_header lines at this level.
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "frame-ancestors 'self'" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
 
     location / {
         try_files $uri $uri/ @react;
