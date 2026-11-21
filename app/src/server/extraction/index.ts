@@ -6,6 +6,7 @@ import { fetchWebPage } from './sources/web'
 import { readFile } from './sources/file'
 import type { RecipeModel } from './model'
 import type { SaveImage } from './sources/file'
+import type { VideoKeys } from './sources/video'
 import type { SourceContent, UploadedFile } from './types'
 import type { RecipeContent } from '#/lib/recipe'
 
@@ -18,7 +19,7 @@ export type { UploadedFile } from './types'
 
 export interface ExtractionDeps {
   model: RecipeModel
-  elevenlabsApiKey: string
+  videoKeys: VideoKeys
   saveImage: SaveImage
 }
 
@@ -34,7 +35,7 @@ export async function extractFromUrl(
   deps: ExtractionDeps,
 ): Promise<RecipeContent> {
   const source = isVideoUrl(url)
-    ? await fetchVideo(url, deps.elevenlabsApiKey)
+    ? await fetchVideo(url, deps.videoKeys)
     : await fetchWebPage(url)
   return extract(source, deps.model)
 }

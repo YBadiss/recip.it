@@ -37,6 +37,8 @@ All settings are environment variables, see [`app/.env.example`](app/.env.exampl
   (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`). The model must accept images and PDFs.
 - `DATA_FOLDER` holds `recipes.db` and `uploads/` (photos of uploaded recipes). Use an absolute path in
   production.
+- `YOUTUBE_API_KEY` (YouTube Data API v3) fetches YouTube titles and descriptions. YouTube blocks page
+  scraping from datacenter IPs, so on a server this is what makes videos without speech importable.
 - `ELEVENLABS_API_KEY` enables video imports: ElevenLabs transcribes the video from its URL (YouTube, TikTok and other hosts), and the title, description and thumbnail come from the platform (oEmbed or the page).
 - `JWT_SECRET` signs the session cookie.
 
