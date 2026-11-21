@@ -14,9 +14,10 @@ coverage/
 .env.test.local
 .env.production.local
 
-# Database files
-backend/data/*.db
-backend/data/*.sqlite
+# Database and uploads
+data/
+*.db
+*.sqlite
 
 # Editor directories and files
 .vscode/*
@@ -41,10 +42,10 @@ logs/
 ehthumbs.db
 Thumbs.db
 
-# Frontend specific
-frontend/dist/
-frontend/node_modules/
-frontend/.vite/
+# App build output
+.output/
+.nitro/
+.tanstack/
 tsconfig.tsbuildinfo
 
 *.pdf
