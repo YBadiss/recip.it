@@ -1,5 +1,5 @@
 // Calls the real model and services. Skipped unless RUN_LIVE_TESTS=1 (npm run test:live), and reads
-// LLM_MODEL, the provider API key and ELEVENLABS_API_KEY from the environment (e.g. app/.env).
+// LLM_MODEL, the provider API key, ELEVENLABS_API_KEY and YOUTUBE_API_KEY from the environment (e.g. app/.env).
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -16,7 +16,10 @@ describe.skipIf(!live)('live extraction', () => {
     const uploads = await fs.mkdtemp(path.join(os.tmpdir(), 'recipit-live-'))
     return new RecipeService(new Store(openDatabase(':memory:')), {
       model: createRecipeModel(process.env.LLM_MODEL || 'openai:gpt-5-mini'),
-      elevenlabsApiKey: process.env.ELEVENLABS_API_KEY || '',
+      videoKeys: {
+        elevenlabs: process.env.ELEVENLABS_API_KEY || '',
+        youtube: process.env.YOUTUBE_API_KEY || '',
+      },
       saveImage: async (name, data) => {
         await fs.writeFile(path.join(uploads, name), data)
         return `/uploads/${name}`

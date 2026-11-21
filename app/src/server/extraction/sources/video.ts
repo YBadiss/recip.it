@@ -32,6 +32,13 @@ const INSTRUCTIONS = `This content is a video transcript plus the video's title 
 5. The recipe title may be in the video title, the description or the transcript.
 6. Write every field of the recipe (title, ingredients, steps, tags) in the language of the video, as shown by its title, description and transcript, even though these instructions are in English. Do not translate.`
 
+export interface VideoKeys {
+  /** ElevenLabs speech-to-text, for transcripts. */
+  elevenlabs: string
+  /** YouTube Data API v3, for descriptions: YouTube blocks page scraping from servers. */
+  youtube: string
+}
+
 interface VideoMetadata {
   title?: string
   author?: string
@@ -66,7 +73,50 @@ async function oembed(url: string): Promise<VideoMetadata> {
   }
 }
 
-/** The full YouTube description is only in the page's embedded player data. */
+function youtubeId(url: string): string | undefined {
+  const parsed = new URL(url)
+  if (host(url) === 'youtu.be') return parsed.pathname.slice(1).split('/')[0]
+  return (
+    parsed.searchParams.get('v') ??
+    parsed.pathname.match(/^\/(?:shorts|live|embed)\/([\w-]{11})/)?.[1]
+  )
+}
+
+/** The official API: title, channel, full description and the best thumbnail. */
+async function youtubeDataApi(
+  url: string,
+  apiKey: string,
+): Promise<VideoMetadata> {
+  const id = youtubeId(url)
+  if (!id) throw new Error('Not a YouTube video URL')
+  const data = await getJson(
+    `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${encodeURIComponent(id)}&key=${encodeURIComponent(apiKey)}`,
+  )
+  const items = data.items as
+    | Array<{
+        snippet?: {
+          title?: string
+          description?: string
+          channelTitle?: string
+          thumbnails?: Record<string, { url?: string } | undefined>
+        }
+      }>
+    | undefined
+  const snippet = items?.[0]?.snippet
+  if (!snippet) throw new Error('YouTube video not found')
+  const thumbnails = snippet.thumbnails ?? {}
+  const thumbnail = ['maxres', 'standard', 'high', 'medium', 'default']
+    .map((size) => thumbnails[size]?.url)
+    .find(Boolean)
+  return {
+    title: str(snippet.title),
+    author: str(snippet.channelTitle),
+    description: str(snippet.description),
+    thumbnail,
+  }
+}
+
+/** Without an API key: the description from the page's player data (blocked from datacenter IPs). */
 async function youtubeDescription(url: string): Promise<string | undefined> {
   // The consent cookie skips the EU cookie wall, which otherwise replaces the page.
   const { html } = await fetchPage(url, { Cookie: 'SOCS=CAI' })
@@ -88,9 +138,13 @@ async function openGraph(url: string): Promise<VideoMetadata> {
   }
 }
 
-async function getMetadata(url: string): Promise<VideoMetadata> {
+async function getMetadata(
+  url: string,
+  youtubeApiKey: string,
+): Promise<VideoMetadata> {
   const site = host(url)
   if (site === 'youtube.com' || site === 'youtu.be') {
+    if (youtubeApiKey) return youtubeDataApi(url, youtubeApiKey)
     const [info, description] = await Promise.allSettled([
       oembed(url),
       youtubeDescription(url),
@@ -148,13 +202,13 @@ async function transcribe(url: string, apiKey: string): Promise<Transcript> {
 
 export async function fetchVideo(
   url: string,
-  apiKey: string,
+  keys: VideoKeys,
 ): Promise<SourceContent> {
   // Without an ElevenLabs key, only the title and description are used.
   const [metadataResult, transcriptResult] = await Promise.allSettled([
-    getMetadata(url),
-    apiKey
-      ? transcribe(url, apiKey)
+    getMetadata(url, keys.youtube),
+    keys.elevenlabs
+      ? transcribe(url, keys.elevenlabs)
       : Promise.reject(new Error('ELEVENLABS_API_KEY is not set')),
   ])
   const metadata =
@@ -164,11 +218,20 @@ export async function fetchVideo(
 
   // Without a transcript, the description alone may still hold the recipe.
   if (!transcript?.text.trim() && !metadata.description) {
-    const reason =
-      transcriptResult.status === 'rejected'
-        ? String(transcriptResult.reason)
-        : 'empty transcript'
-    throw new Error(`Could not read this video (${reason})`)
+    if (
+      transcriptResult.status === 'rejected' ||
+      metadataResult.status === 'rejected'
+    ) {
+      const reasons = [transcriptResult, metadataResult]
+        .filter((r) => r.status === 'rejected')
+        .map((r) => String(r.reason))
+      console.warn('Video import failed', url, reasons)
+    }
+    throw new Error(
+      transcript
+        ? "This video has no spoken recipe and its description couldn't be read."
+        : "Couldn't read this video: no transcript and no description.",
+    )
   }
 
   const sections = [`Source URL: ${url}`]

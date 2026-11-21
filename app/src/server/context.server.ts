@@ -13,7 +13,10 @@ export function getServices() {
     const store = new Store(getDb())
     const recipes = new RecipeService(store, {
       model: createRecipeModel(config.llmModel),
-      elevenlabsApiKey: config.elevenlabsApiKey,
+      videoKeys: {
+        elevenlabs: config.elevenlabsApiKey,
+        youtube: config.youtubeApiKey,
+      },
       saveImage: saveUploadedImage,
     })
     services = { store, recipes }

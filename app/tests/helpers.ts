@@ -45,7 +45,7 @@ export async function setup(extraction: Extraction = sampleExtraction) {
         return extraction
       },
     },
-    elevenlabsApiKey: '',
+    videoKeys: { elevenlabs: '', youtube: '' },
     saveImage: async (name, data) => {
       await fs.writeFile(path.join(uploads, name), data)
       return `/uploads/${name}`
