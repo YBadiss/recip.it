@@ -1,9 +1,6 @@
 server {
     server_name recipit.me www.recipit.me;
 
-    root /var/www/recip.it/frontend;
-    index index.html index.htm;
-
     # Security headers. nginx drops server-level add_header in any location that sets its own,
     # so keep all add_header lines at this level.
     add_header Strict-Transport-Security "max-age=31536000" always;
@@ -12,25 +9,20 @@ server {
     add_header Content-Security-Policy "frame-ancestors 'self'" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
 
-    # Add this block to handle URLs with "http://" or "https://" in the path
-    location ~ ^/https?:// {
-        rewrite ^/(.*)$ /index.html break;
-    }
-
+    # The TanStack Start app (pages, server functions, uploads) runs under PM2 on port 3000.
+    # proxy_pass without a URI forwards the path unchanged, so recipit.me/https://... import links keep their "//".
     location / {
-        try_files $uri $uri/ @react;
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # Recipe extraction calls an LLM and can take more than the default 60s.
+        proxy_read_timeout 150s;
     }
 
-    location @react {
-        rewrite ^.*$ /index.html break;
-    }
-
-    location = /favicon.ico {
-        log_not_found off;
-        access_log off;
-    }
-
-    error_page 404 /index.html;
+    # Recipe photos and PDFs (the app accepts up to 15 MB).
+    client_max_body_size 20M;
 
     listen 443 ssl; # managed by Certbot
     ssl_certificate /etc/letsencrypt/live/recipit.me/fullchain.pem; # managed by Certbot
@@ -42,24 +34,8 @@ server {
 server {
     server_name api.recipit.me;
 
-    # Security headers. nginx drops server-level add_header in any location that sets its own,
-    # so keep all add_header lines at this level.
-    add_header Strict-Transport-Security "max-age=31536000" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Content-Security-Policy "frame-ancestors 'self'" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    client_max_body_size 50M;
+    # The separate API was merged into the app: send old links to the main site.
+    return 301 https://recipit.me$request_uri;
 
     listen 443 ssl; # managed by Certbot
     ssl_certificate /etc/letsencrypt/live/api.recipit.me/fullchain.pem; # managed by Certbot
@@ -71,31 +47,8 @@ server {
 server {
     server_name admin.recipit.me www.admin.recipit.me;
 
-    root /var/www/recip.it/admin;
-    index index.html index.htm;
-
-    # Security headers. nginx drops server-level add_header in any location that sets its own,
-    # so keep all add_header lines at this level.
-    add_header Strict-Transport-Security "max-age=31536000" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Content-Security-Policy "frame-ancestors 'self'" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
-
-    location / {
-        try_files $uri $uri/ @react;
-    }
-
-    location @react {
-        rewrite ^.*$ /index.html break;
-    }
-
-    location = /favicon.ico {
-        log_not_found off;
-        access_log off;
-    }
-
-    error_page 404 /index.html;
+    # The admin is now the /admin section of the app.
+    return 301 https://recipit.me/admin;
 
     listen 443 ssl; # managed by Certbot
     ssl_certificate /etc/letsencrypt/live/admin.recipit.me/fullchain.pem; # managed by Certbot
@@ -103,7 +56,6 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 }
-
 
 server {
     if ($host = www.recipit.me) {
